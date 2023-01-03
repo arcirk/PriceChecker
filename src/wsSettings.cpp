@@ -1,0 +1,345 @@
+#include "include/wsSettings.hpp"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QFile>
+#include <QStandardPaths>
+#include <QDir>
+#include <QSysInfo>
+
+namespace arcirk{
+
+    Settings::Settings(QObject *parent)
+        : QObject{parent}
+    {
+
+        init_device_id();
+        m_product = QSysInfo::prettyProductName();
+        read_conf();
+        read_private_conf();
+
+
+//        auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+//        QDir dir(path);
+//        if(!dir.exists())
+//            dir.mkpath(path);
+
+//        auto fileName= path + "/price_checker_conf.json";
+
+//        qDebug() << __FUNCTION__ << fileName;
+
+//        //m_device_id = QSysInfo::machineUniqueId();
+//        m_product = QSysInfo::prettyProductName();
+
+//        if(QFile::exists(fileName)){
+//            QFile f(fileName);
+//            f.open(QIODevice::ReadOnly);
+//            auto doc = QJsonDocument::fromJson(f.readAll());
+//            auto obj = doc.object();
+//            f.close();
+//            m_host =        obj.value("host").toString();
+//            m_userName =    obj.value("userName").toString();
+//            m_hash =        obj.value("hash").toString();
+//            m_port =        obj.value("port").toInt();
+//            //m_device_id =   obj.value("device_id").toString();
+//            //m_product =     obj.value("product").toString();
+//            m_httpService = obj.value("httpService").toString();
+//            m_httpPwd =     obj.value("httpPwd").toString();
+//            if(m_product.isEmpty())
+//                m_product = QSysInfo::prettyProductName();
+//            m_keyboardInputMode = obj.value("keyboardInputMode").toBool();
+//            //m_priceCheckerMode = obj.value("priceCheckerMode").toBool();
+//            //if(!m_priceCheckerMode)
+//            m_priceCheckerMode = true; //в этом проекте всегда истина
+//            m_isQrImage = obj.value("isQrImage").toBool();
+
+//        }else{
+//            m_host = "ws://localhost";
+//            m_port = 8080;
+//            m_userName = "IIS_1C";
+//            m_hash = "";
+//            m_httpService = "http://localhost/trade/hs/http_trade";
+//        }
+
+//        if(m_device_id.isEmpty()){
+//            m_device_id = QUuid::createUuid().toString();
+//        }
+
+//        if(m_device_id.length() > 36)
+//            m_device_id.replace("{", "").replace("}","");
+
+//        if(m_userName.isEmpty())
+//            m_userName = "IIS_1C";
+
+    }
+
+    void Settings::read_conf(){
+
+        conf.ServerHost = "127.0.0.1";
+        conf.ServerPort = 8080;
+        conf.ServerUser = "IIS_1C";
+        conf.HSHost = "http://localhost/trade/hs/http_trade";
+        conf.Version = ARCIRK_VERSION;
+
+        auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QDir dir(path);
+        if(!dir.exists())
+            dir.mkpath(path);
+
+        auto fileName= path + "/price_checker_conf.json";
+        if(QFile::exists(fileName)){
+
+            QFile f(fileName);
+            f.open(QIODevice::ReadOnly);
+
+            std::string m_text = f.readAll().toStdString();
+            f.close();
+
+            try {
+                conf = pre::json::from_json<server::server_config>(m_text);
+            } catch (std::exception& e) {
+                qCritical() << e.what();
+            }
+        }
+    }
+
+    void Settings::read_private_conf(){
+
+        client_conf.isQrImage = false;
+        client_conf.keyboardInputMode = true;
+        client_conf.priceCheckerMode = true;
+
+        auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QDir dir(path);
+        if(!dir.exists())
+            dir.mkpath(path);
+
+        auto fileName= path + "/price_checker_private_conf.json";
+        if(QFile::exists(fileName)){
+            QFile f(fileName);
+            f.open(QIODevice::ReadOnly);
+
+            std::string m_text = f.readAll().toStdString();
+            f.close();
+
+            try {
+                client_conf = pre::json::from_json<client::client_private_config>(m_text);
+            } catch (std::exception& e) {
+                qCritical() << e.what();
+            }
+        }
+    }
+
+    void Settings::write_conf(){
+        try {
+            std::string result = to_string(pre::json::to_json(conf)) ;
+            auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+            auto fileName= path + "/price_checker_conf.json";
+            QFile f(fileName);
+            f.open(QIODevice::WriteOnly);
+            f.write(QByteArray::fromStdString(result));
+            f.close();
+        } catch (std::exception& e) {
+            qCritical() << e.what();
+        }
+    }
+
+    void Settings::write_private_conf(){
+        try {
+            std::string result = to_string(pre::json::to_json(client_conf)) ;
+            auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+            auto fileName= path + "/price_checker_private_conf.json";
+            QFile f(fileName);
+            f.open(QIODevice::WriteOnly);
+            f.write(QByteArray::fromStdString(result));
+            f.close();
+        } catch (std::exception& e) {
+            qCritical() << e.what();
+        }
+    }
+
+    void Settings::init_device_id(){
+        QString m_id = QSysInfo::machineUniqueId();
+        if(m_id.isEmpty())
+            m_device_id = QUuid::createUuid();
+        else{
+           m_device_id = QUuid::fromString(m_id);
+        }
+    }
+
+    QString Settings::host() const
+    {
+        return QString::fromStdString(conf.ServerHost);//m_host;
+    }
+
+    int Settings::port()
+    {
+        return conf.ServerPort;//m_port;
+    }
+
+    QString Settings::userName() const
+    {
+        return QString::fromStdString(conf.ServerUser);//m_userName;
+    }
+
+    QString Settings::hash() const
+    {
+        return QString::fromStdString(conf.ServerUserHash);//m_hash;
+    }
+
+    void Settings::setHost(const QString &value)
+    {
+        //m_host = value;
+        conf.ServerHost = value.toStdString();
+    }
+
+    void Settings::setPort(int value)
+    {
+        //m_port = value;
+        conf.ServerPort = value;
+    }
+
+    void Settings::setUserName(const QString &value)
+    {
+        //m_userName = value;
+        conf.ServerUser = value.toStdString();
+    }
+
+    void Settings::setHash(const QString &value)
+    {
+        //m_hash = value;
+        conf.ServerUserHash = value.toStdString();
+    }
+
+    void Settings::setProduct(const QString &value)
+    {
+        m_product = value;
+    }
+
+    QUrl Settings::url() const
+    {
+        QUrl _url;
+        _url.setHost(QString::fromStdString(conf.ServerHost));
+        _url.setPort(conf.ServerPort);
+        _url.setScheme(QString::fromStdString(conf.ServerProtocol));
+        return _url;
+//        QString  _url = QString::fromStdString(conf.ServerHost);//m_host;
+//        QString _prot = QString::fromStdString(conf.ServerProtocol);
+//        if(conf.ServerPort > 0)
+//            _url = _prot + "://" + _url + ":" + QString::number(conf.ServerPort);
+
+//        return QUrl(_url);
+    }
+
+    void Settings::setUrl(const QString &url)
+    {
+        QUrl _url(url);
+        conf.ServerHost = _url.host().toStdString();
+        conf.ServerPort = _url.port();
+        conf.ServerProtocol = _url.scheme().toStdString();
+//        QStringList lst = url.split(":");
+//        if(lst.size() == 1)
+//        {
+//            conf.ServerHost = QString::frolst[0];
+
+//        }else if(lst.size() == 2){
+//            m_host = "ws:" + lst[1];
+//        }else if(lst.size() == 3){
+//            m_host = "ws:" + lst[1];
+//            m_port = lst[2].toInt();
+//        }
+    }
+
+    void Settings::save()
+    {
+        write_conf();
+        write_private_conf();
+//        auto obj = QJsonObject();
+//        obj.insert("host", m_host);
+//        obj.insert("userName", m_userName);
+//        obj.insert("hash", m_hash);
+//        obj.insert("port", m_port);
+//        obj.insert("device_id", m_device_id);
+//        obj.insert("product", m_product);
+//        obj.insert("httpService", m_httpService);
+//        obj.insert("httpPwd", m_httpPwd);
+//        obj.insert("keyboardInputMode", m_keyboardInputMode);
+//        obj.insert("priceCheckerMode", m_priceCheckerMode);
+//        obj.insert("isQrImage", m_isQrImage);
+
+//        auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+//        auto fileName= path + "/price_checker_conf.json";
+//        QFile f(fileName);
+//        f.open(QIODevice::WriteOnly);
+//        f.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
+//        f.close();
+    }
+
+    QString Settings::product() const
+    {
+        return m_product;
+    }
+
+    QString Settings::deviceId() const
+    {
+        return m_device_id.toString();
+    }
+
+    void Settings::setDeviceId(const QString &device_id)
+    {
+        m_device_id = QUuid(device_id);
+    }
+
+    void Settings::setHttpService(const QString &value)
+    {
+        //m_httpService = value;
+        conf.HSHost = value.toStdString();
+    }
+
+    void Settings::setHttpPwd(const QString &value)
+    {
+        //m_httpPwd = value;
+        conf.HSPassword = value.toStdString();
+    }
+
+    void Settings::setKeyboardInputMode(bool value)
+    {
+        client_conf.keyboardInputMode = value;
+    }
+
+    void Settings::setPriceCheckerMode(bool value)
+    {
+       client_conf.priceCheckerMode = value;
+    }
+
+    bool Settings::keyboardInputMode()
+    {
+        return client_conf.keyboardInputMode;
+    }
+
+    bool Settings::priceCheckerMode()
+    {
+        return client_conf.priceCheckerMode;
+    }
+
+    void Settings::setIsQrImage(bool value)
+    {
+        client_conf.isQrImage = value;
+    }
+
+    bool Settings::isQrImage()
+    {
+        return client_conf.isQrImage;// m_isQrImage;
+    }
+
+    QString Settings::httpService() const
+    {
+        return QString::fromStdString(conf.HSHost); //m_httpService;
+    }
+
+    QString Settings::httpPwd() const
+    {
+        return QString::fromStdString(conf.HSPassword); //m_httpPwd;
+    }
+
+
+}

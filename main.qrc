@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <file>img/lan_check_offline.png</file>
+        <file>img/lan_check_online.png</file>
+        <file>img/setting.png</file>
+        <file>qml/main.qml</file>
+        <file>qml/OptionsDialog.qml</file>
+        <file>img/itemEdit.png</file>
+        <file>img/viewPwd.png</file>
+        <file>img/viewPwd1.png</file>
+        <file>qml/PopupMessage.qml</file>
+        <file>qml/PageScanner.qml</file>
+        <file>qml/PageStart.qml</file>
+        <file>img/info16.png</file>
+    </qresource>
+</RCC>
