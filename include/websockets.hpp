@@ -6,6 +6,9 @@
 #include <QUuid>
 #include "wsSettings.hpp"
 #include "shared_struct.hpp"
+#include <QQueue>
+
+typedef std::function<void()> async_await;
 
 class WebSocketClient : public QObject
 {
@@ -44,6 +47,12 @@ public:
 
     static QString get_hash(const QString& first, const QString& second);
 
+    Q_INVOKABLE void updateHttpServiceConfiguration();
+
+    Q_INVOKABLE QString crypt(const QString& source, const QString& key);
+
+    Q_INVOKABLE void registerDevice();
+
 private:
     QWebSocket* m_client;
     arcirk::Settings * wsSettings;
@@ -55,9 +64,24 @@ private:
     QUrl m_url;
     bool m_started;
 
+    QQueue<async_await> m_async_await;
+
     static QString get_sha1(const QByteArray& p_arg);
 
     void parse_response(const QString& resp);
+
+    void send_command(arcirk::server::server_commands cmd, const nlohmann::json& param = {});
+
+    void update_server_configuration(const QString& typeConf, const std::string& srv_resp);
+
+    void parse_exec_query_result(arcirk::server::server_response& resp);
+
+    void asyncAwait(){
+        if(m_async_await.size() > 0){
+            auto f = m_async_await.dequeue();
+            f();
+        }
+    };
 
 private slots:
 
@@ -76,6 +100,10 @@ signals:
     void displayError(const QString& what, const QString& err);
     void connectionSuccess(); //при успешной авторизации
     void connectionChanged(bool state);
+
+    void updateHsConfiguration(const QString& hsHost, const QString& hsUser, const QString& hsPwd);
+
+    void notify(const QString &message);
 };
 
 #endif // WEBSOCKETS_HPP

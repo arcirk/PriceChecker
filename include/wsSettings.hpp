@@ -29,6 +29,7 @@ namespace arcirk{
         Q_PROPERTY(QString product READ product WRITE setProduct NOTIFY productChanged)
         Q_PROPERTY(QString httpService READ httpService WRITE setHttpService NOTIFY httpServiceChanged)
         Q_PROPERTY(QString httpPwd READ httpPwd WRITE setHttpPwd NOTIFY httpPwdChanged)
+        Q_PROPERTY(QString httpUser READ httpPwd WRITE setHttpUser NOTIFY httpUserChanged)
         Q_PROPERTY(bool isQrImage READ isQrImage WRITE setIsQrImage NOTIFY isQrImageChanged)
         Q_PROPERTY(bool keyboardInputMode READ keyboardInputMode WRITE setKeyboardInputMode NOTIFY keyboardInputModeChanged)
         Q_PROPERTY(bool priceCheckerMode READ priceCheckerMode WRITE setPriceCheckerMode NOTIFY priceCheckerModeChanged)
@@ -51,6 +52,7 @@ namespace arcirk{
 
         Q_INVOKABLE void setHttpService(const QString& value);
         Q_INVOKABLE void setHttpPwd(const QString& value);
+        Q_INVOKABLE void setHttpUser(const QString& value);
 
         void setKeyboardInputMode(bool value); //Используется клавиатурный ввод (прайс-чекер, или подключенный сканер)
         void setPriceCheckerMode(bool value);
@@ -59,6 +61,8 @@ namespace arcirk{
 
         QString userName() const;
         QString hash() const;
+        QString deviceId() const;
+        QString product() const;
 
     private:
         QString m_host;
@@ -78,11 +82,13 @@ namespace arcirk{
 
         QString httpService() const;
         QString httpPwd() const;
+        QString httpUser() const;
+
         QString host() const;
 
 
-        QString deviceId() const;
-        QString product() const;
+
+
         bool keyboardInputMode();
         bool priceCheckerMode();
         bool isQrImage();
@@ -107,7 +113,7 @@ namespace arcirk{
         void isQrImageChanged();
         void keyboardInputModeChanged();
         void priceCheckerModeChanged();
-
+        void httpUserChanged();
     };
 
 }

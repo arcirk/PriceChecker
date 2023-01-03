@@ -6,12 +6,12 @@
 #define ARCIRK_VERSION "1.1.0"
 #define ARCIRK_SERVER_CONF "server_conf.json"
 
-typedef std::function<void(const std::string&)> callback_message;
-typedef std::function<void(bool)> callback_status;
-typedef std::function<void()> callback_connect;
-typedef std::function<void(const std::string&, const std::string&, int)> callback_error;
-typedef std::function<void()> callback_close;
-typedef std::function<void()> callback_successful_authorization;
+//typedef std::function<void(const std::string&)> callback_message;
+//typedef std::function<void(bool)> callback_status;
+//typedef std::function<void()> callback_connect;
+//typedef std::function<void(const std::string&, const std::string&, int)> callback_error;
+//typedef std::function<void()> callback_close;
+//typedef std::function<void()> callback_successful_authorization;
 
 
 BOOST_FUSION_DEFINE_STRUCT(
@@ -40,6 +40,7 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, sender_uuid)
         (std::string, receiver_name)
         (std::string, receiver_uuid)
+        (std::string, version)
 )
 
 BOOST_FUSION_DEFINE_STRUCT(
@@ -149,7 +150,9 @@ namespace arcirk::server{
         CommandToClient, //Команда клиенту (подписчику)
         ServerUsersList, //Список пользователей (база данных)
         ExecuteSqlQuery, //выполнить запрос к базе данных
-        GetMessages,
+        GetMessages, //Список сообщений
+        UpdateServerConfiguration, //Обновить конфигурацию сервера
+        HttpServiceConfiguration, //Получить конфигурацию http сервиса 1С
         CMD_INVALID=-1,
     };
 
@@ -165,6 +168,8 @@ namespace arcirk::server{
         {ServerUsersList, "ServerUsersList"}    ,
         {ExecuteSqlQuery, "ExecuteSqlQuery"}    ,
         {GetMessages, "GetMessages"}    ,
+        {UpdateServerConfiguration, "UpdateServerConfiguration"}    ,
+        {HttpServiceConfiguration, "HttpServiceConfiguration"}    ,
     })
 
 }
@@ -210,6 +215,47 @@ BOOST_FUSION_DEFINE_STRUCT(
         (bool, isQrImage)
         (bool, keyboardInputMode)
         (bool, priceCheckerMode)
+        (std::string, deviceId)
 );
+
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), devices,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, cache)
+        (std::string, deviceType)
+        (std::string, workplace)
+);
+
+namespace arcirk::database {
+
+    enum tables{
+        tbUsers,
+        tbMessages,
+        tbOrganizations,
+        tbSubdivisions,
+        tbWarehouses,
+        tbPriceTypes,
+        tbWorkplaces,
+        tbDevices,
+        tables_INVALID=-1,
+    };
+
+    NLOHMANN_JSON_SERIALIZE_ENUM(tables, {
+        {tables_INVALID, nullptr}    ,
+        {tbUsers, "Users"}  ,
+        {tbMessages, "Messages"}  ,
+        {tbOrganizations, "Organizations"}  ,
+        {tbSubdivisions, "Subdivisions"}  ,
+        {tbWarehouses, "Warehouses"}  ,
+        {tbPriceTypes, "PriceTypes"}  ,
+        {tbWorkplaces, "Workplaces"}  ,
+        {tbDevices, "Devices"}  ,
+    })
+
+}
 
 #endif

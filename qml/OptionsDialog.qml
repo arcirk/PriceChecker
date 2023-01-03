@@ -15,6 +15,11 @@ Popup {
     //Component.onCompleted: visible = true
     property string theme: "Dark"
 
+    function updateHttpServiceConfiguration(hsHost, hsUser, hsPwd){
+        wsSettings.httpService = hsHost;
+        txtHttpService.text = hsHost;
+    }
+
     onVisibleChanged: {
         wsSettings.save();
     }
@@ -68,6 +73,7 @@ Popup {
             //enabled: !wsClient.isStarted();
             onEditingFinished: {
                 wsSettings.userName = txtUser.text;
+                wsSettings.httpUser = txtUser.text;
             }
 
             onAccepted: {
@@ -99,7 +105,7 @@ Popup {
 
                 onEditingFinished: {
                     wsSettings.hash = wsClient.generateHash(txtUser.text, txtPass.text)
-//                    wsSettings.httpPwd = wsClient.crypt(txtPass.text, "my_key");
+                    wsSettings.httpPwd = wsClient.crypt(txtPass.text, "my_key");
                 }
 
                 onEnabledChanged: {
@@ -215,6 +221,7 @@ Popup {
             checked: wsSettings.isQrImage;
             text: "Показывать картинку штрихода"
             Layout.fillWidth: true
+            Material.accent: Material.Blue
             contentItem: Label {
                 text: isQrImage.text
                 font: isQrImage.font
@@ -236,6 +243,7 @@ Popup {
             checked: wsSettings.keyboardInputMode;
             text: "Режим клавиатурного ввода"
             Layout.fillWidth: true
+            Material.accent: Material.Blue
             contentItem: Label {
                 text: isKeyboardMode.text
                 font: isKeyboardMode.font
@@ -257,6 +265,7 @@ Popup {
             checked: wsSettings.priceCheckerMode;
             text: "Режим прайс-чекера"
             Layout.fillWidth: true
+            Material.accent: Material.Blue
             contentItem: Label {
                 text: isPriceCheckerMode.text
                 font: isPriceCheckerMode.font
@@ -302,12 +311,14 @@ Popup {
                 text: "Зарегистрировать"
 
                 onClicked: {
-    //                if(!wsClient.isStarted())
-    //                    popupMessage.showError("Ошибка", "Клиент не подключен!")
-    //                else{
-    //                    var result = wsClient.registerClientOn1C(wsSettings.httpService, wsSettings.userName, wsClient.crypt(wsSettings.httpPwd, "my_key"))
-    //                    wsClient.registerClientToDatabase();
-    //                }
+                    if(!wsClient.isStarted())
+                        popupMessage.showError("Ошибка", "Клиент не подключен!")
+                    else{
+//                        var result = wsClient.registerClientOn1C(wsSettings.httpService, wsSettings.userName, wsClient.crypt(wsSettings.httpPwd, "my_key"))
+//                        wsClient.registerClientToDatabase();
+                        wsClient.registerDevice();
+                    }
+
                 }
             }
 

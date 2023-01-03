@@ -12,10 +12,15 @@ namespace arcirk{
         : QObject{parent}
     {
 
-        init_device_id();
+        read_private_conf();
+        if(client_conf.deviceId.empty())
+            init_device_id();
+        else{
+            m_device_id = QUuid::fromString(QString::fromStdString(client_conf.deviceId));
+        }
         m_product = QSysInfo::prettyProductName();
         read_conf();
-        read_private_conf();
+
 
 
 //        auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -164,6 +169,7 @@ namespace arcirk{
         else{
            m_device_id = QUuid::fromString(m_id);
         }
+        client_conf.deviceId = m_device_id.toString().toStdString();
     }
 
     QString Settings::host() const
@@ -301,6 +307,11 @@ namespace arcirk{
         conf.HSPassword = value.toStdString();
     }
 
+    void Settings::setHttpUser(const QString &value)
+    {
+        conf.HSUser = value.toStdString();
+    }
+
     void Settings::setKeyboardInputMode(bool value)
     {
         client_conf.keyboardInputMode = value;
@@ -339,6 +350,11 @@ namespace arcirk{
     QString Settings::httpPwd() const
     {
         return QString::fromStdString(conf.HSPassword); //m_httpPwd;
+    }
+
+    QString Settings::httpUser() const
+    {
+        return QString::fromStdString(conf.HSUser);
     }
 
 

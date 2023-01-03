@@ -31,10 +31,13 @@ ApplicationWindow {
         id: webSocketClient
 
         onConnectionSuccess: {
-            console.log("onConnectionSuccess")
+            //console.log("onConnectionSuccess")
+
+            //wsClient.updateHttpServiceConfiguration();
         }
         onDisplayError: function(what, err){
-            console.error(what + ": " + err)
+            //console.error(what + ": " + err)
+            popupMessage.showError(what, err);
         }
         onConnectionChanged: function(state){
             btnConnectionState.icon.source = state ?  "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
@@ -46,6 +49,13 @@ ApplicationWindow {
             //pageOptions.connectionChanged(state)
         }
 
+        onUpdateHsConfiguration: function(hsHost, hsUser, hsPwd){
+            optionsDlg.updateHttpServiceConfiguration(hsHost, hsUser, hsPwd)
+        }
+
+        onNotify: function(message){
+            popupMessage.show(message)
+        }
     }
 
     menuBar: ToolBar{
@@ -69,6 +79,7 @@ ApplicationWindow {
                     onClicked: {
 
                     }
+
                 }
                 ToolButton{
                     id: btnOptions

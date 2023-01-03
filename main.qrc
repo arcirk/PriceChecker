@@ -12,5 +12,6 @@
         <file>qml/PageScanner.qml</file>
         <file>qml/PageStart.qml</file>
         <file>img/info16.png</file>
+        <file>img/error16.png</file>
     </qresource>
 </RCC>
