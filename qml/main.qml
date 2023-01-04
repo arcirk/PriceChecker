@@ -25,6 +25,13 @@ ApplicationWindow {
 
     property Settings wsSettings: Settings{
         //deviceId: qtAndroidService.deviceId
+
+        onUpdateWorkplaceView: function(org, suborg, stok, price){
+            pageStart.organization = org;
+            pageStart.subdivision = suborg;
+            pageStart.warehouse = stok;
+            pageStart.price = price;
+        }
     }
 
     property WebSocketClient wsClient: WebSocketClient{

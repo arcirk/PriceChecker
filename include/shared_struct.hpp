@@ -6,13 +6,6 @@
 #define ARCIRK_VERSION "1.1.0"
 #define ARCIRK_SERVER_CONF "server_conf.json"
 
-//typedef std::function<void(const std::string&)> callback_message;
-//typedef std::function<void(bool)> callback_status;
-//typedef std::function<void()> callback_connect;
-//typedef std::function<void(const std::string&, const std::string&, int)> callback_error;
-//typedef std::function<void()> callback_close;
-//typedef std::function<void()> callback_successful_authorization;
-
 
 BOOST_FUSION_DEFINE_STRUCT(
         (arcirk::client), client_param,
@@ -49,94 +42,7 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, stockRef)
         (std::string, typePrice)
         (std::string, stock)
-        )
-
-//BOOST_FUSION_DEFINE_STRUCT(
-//        (arcirk::server), server_command_result,
-//        (std::string, command)
-//        (std::string, uuid_form)
-//        (std::string, result)
-//        (std::string, message)
-//        (std::string, error_description)
-//        (std::string, param)
-
-//)
-
-//class server_commands_exception : public std::exception
-//{
-//private:
-//    std::string m_error{}; // handle our own string
-//    std::string uuid_form_{};
-//    std::string command_{};
-
-//public:
-//    server_commands_exception(std::string_view error, std::string_view command, std::string_view uuid_form)
-//            : m_error{error},
-//              uuid_form_{uuid_form},
-//              command_{command}
-//    {
-//    }
-
-//    [[nodiscard]] const char* what() const noexcept override { return m_error.c_str(); }
-//    [[nodiscard]] const char* uuid_form() const noexcept { return uuid_form_.c_str(); }
-//    [[nodiscard]] const char* command() const noexcept { return command_.c_str(); }
-//};
-
-//namespace arcirk::client{
-
-//    typedef boost::variant<callback_message, callback_status, callback_connect, callback_error, callback_close, callback_successful_authorization> callbacks;
-
-//    struct client_data{
-
-//        std::string host;
-//        int port;
-//        callback_message on_message;
-//        callback_status on_status_changed;
-//        callback_connect on_connect;
-//        callback_error  on_error;
-//        callback_close on_close;
-//        callback_successful_authorization on_successful_authorization;
-
-//        boost::uuids::uuid session_uuid;
-
-//    public:
-//        explicit
-//        client_data()
-//                : host("localhost")
-//                , port(8080)
-//                , on_message(nullptr)
-//                , on_status_changed(nullptr)
-//                , on_connect(nullptr)
-//                , on_error(nullptr)
-//                , on_close(nullptr)
-//                , on_successful_authorization(nullptr)
-//                , session_uuid(boost::uuids::nil_uuid())
-//        {}
-//    };
-
-//    enum client_events{
-//        wsMessage,
-//        wsStatusChanged,
-//        wsConnect,
-//        wsClose,
-//        wsError,
-//        wsSuccessfulAuthorization,
-//        TS_INVALID=-1,
-//    };
-
-
-//    NLOHMANN_JSON_SERIALIZE_ENUM(client_events, {
-//        {TS_INVALID, nullptr}    ,
-//        {wsMessage, "WebCore::Message"}  ,
-//        {wsStatusChanged, "WebCore::StatusChanged"}    ,
-//        {wsConnect, "WebCore::Connect"}    ,
-//        {wsClose, "WebCore::Close"}    ,
-//        {wsError, "WebCore::Error"}    ,
-//        {wsSuccessfulAuthorization, "WebCore::SuccessfulAuthorization"}    ,
-
-//    })
-
-//}
+)
 
 namespace arcirk::server{
 
@@ -220,6 +126,17 @@ BOOST_FUSION_DEFINE_STRUCT(
 
 
 BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), workplaces,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, cache)
+        (std::string, server)
+
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
         (arcirk::database), devices,
         (int, _id)
         (std::string, first)
@@ -227,7 +144,22 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, ref)
         (std::string, cache)
         (std::string, deviceType)
+        (std::string, address)
         (std::string, workplace)
+        (std::string, price)
+        (std::string, warehouse)
+        (std::string, subdivision)
+        (std::string, organization)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), devices_view,
+        (std::string, ref)
+        (std::string, workplace)
+        (std::string, price)
+        (std::string, warehouse)
+        (std::string, subdivision)
+        (std::string, organization)
 );
 
 namespace arcirk::database {
@@ -241,6 +173,7 @@ namespace arcirk::database {
         tbPriceTypes,
         tbWorkplaces,
         tbDevices,
+        tbDevicesType,
         tables_INVALID=-1,
     };
 
@@ -254,8 +187,36 @@ namespace arcirk::database {
         {tbPriceTypes, "PriceTypes"}  ,
         {tbWorkplaces, "Workplaces"}  ,
         {tbDevices, "Devices"}  ,
-    })
+        {tbDevicesType, "DevicesType"}  ,
+    });
 
+    enum devices_type{
+        devDesktop,
+        devServer,
+        devPhone,
+        devTablet,
+        devExtendedLib,
+        dev_INVALID=-1
+    };
+
+    NLOHMANN_JSON_SERIALIZE_ENUM(devices_type, {
+        {dev_INVALID, nullptr},
+        {devDesktop, "Desktop"},
+        {devServer, "Server"},
+        {devPhone, "Phone"},
+        {devTablet, "Tablet"},
+        {devExtendedLib, "ExtendedLib"},
+    });
+
+    enum views{
+        dvDevicesView,
+        views_INVALID=-1,
+    };
+
+    NLOHMANN_JSON_SERIALIZE_ENUM(views, {
+        { views_INVALID, nullptr }    ,
+        { dvDevicesView, "DevicesView" }  ,
+    });
 }
 
 #endif

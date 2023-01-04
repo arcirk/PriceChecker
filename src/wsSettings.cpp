@@ -285,9 +285,33 @@ namespace arcirk{
         return m_product;
     }
 
+    void Settings::update_workplace_data(const nlohmann::json &object)
+    {
+        try {
+            m_workplace = pre::json::from_json<arcirk::database::devices>(object);
+        } catch (const std::exception& e) {
+            qCritical() << __FUNCTION__ << e.what();
+        }
+
+    }
+
+    void Settings::update_workplace_view(const nlohmann::json &object)
+    {
+        try {
+            m_workplace_view = pre::json::from_json<arcirk::database::devices_view>(object);
+            emit updateWorkplaceView(QString::fromStdString(m_workplace_view.organization),
+                                     QString::fromStdString(m_workplace_view.subdivision),
+                                     QString::fromStdString(m_workplace_view.warehouse),
+                                     QString::fromStdString(m_workplace_view.price));
+
+        } catch (const std::exception& e) {
+            qCritical() << __FUNCTION__ << e.what();
+        }
+    }
+
     QString Settings::deviceId() const
     {
-        return m_device_id.toString();
+        return m_device_id.toString(QUuid::WithoutBraces);
     }
 
     void Settings::setDeviceId(const QString &device_id)

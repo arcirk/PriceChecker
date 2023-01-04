@@ -201,6 +201,7 @@ void WebSocketClient::parse_response(const QString &resp)
                 emit connectionChanged(true);
                 //поочередное выполнение
                 m_async_await.append(std::bind(&WebSocketClient::updateHttpServiceConfiguration, this));
+                m_async_await.append(std::bind(&WebSocketClient::get_workplace_options, this));
                 asyncAwait();
             }else{
                 emit displayError("SetClientParam", "Ошибка авторизации");
@@ -268,16 +269,93 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
         std::string p = QByteArray::fromBase64(p_str.data()).toStdString();
         auto param = nlohmann::json::parse(p);
         std::string table_name = param.value("table_name", "");
+        std::string query_type = param.value("query_type", "");
         if(resp.message == "OK" && !table_name.empty()){
-
             nlohmann::json tb_name = table_name;
             if(tb_name.get<arcirk::database::tables>() == arcirk::database::tables::tbDevices){
-                emit notify("Устройство успешно зарегистрировано!");
+                if(query_type == "insert_or_update")
+                    emit notify("Устройство успешно зарегистрировано!");
+                else if(query_type == "select"){
+                    nlohmann::json table = nlohmann::json::parse(QByteArray::fromBase64(resp.result.data()).toStdString());
+                    auto rows = table.value("rows", nlohmann::json{});
+                    if(rows.size() > 0 && wsSettings){
+                        auto item = rows[0];
+                        if(item.is_object()){
+                            std::string id = item.value("ref","");
+                            if(wsSettings->deviceId().toStdString() == id){
+                                wsSettings->update_workplace_data(item);
+                                m_async_await.append(std::bind(&WebSocketClient::get_workplace_view_options, this));
+                            }
+                        }
+                    }
+                }
+            }else if(tb_name.get<arcirk::database::views>() == arcirk::database::views::dvDevicesView){
+                nlohmann::json table = nlohmann::json::parse(QByteArray::fromBase64(resp.result.data()).toStdString());
+                auto rows = table.value("rows", nlohmann::json{});
+                if(rows.size() > 0 && wsSettings){
+                    auto item = rows[0];
+                    if(item.is_object()){
+                        std::string id = item.value("ref","");
+                        if(wsSettings->deviceId().toStdString() == id){
+                            wsSettings->update_workplace_view(item);
+                        }
+                    }
+                }
             }
         }
 
+        asyncAwait();
+
     } catch (const std::exception& e) {
         qCritical() << e.what();
+    }
+}
+
+void WebSocketClient::get_workplace_options()
+{
+    if(wsSettings){
+        QUuid devId = QUuid::fromString(wsSettings->deviceId());
+        if(devId.isNull()){
+            qCritical() << __FUNCTION__ << "Не верный идентификатор устройства!";
+            return;
+        }
+        nlohmann::json query_param = {
+            {"table_name", "Devices"},
+            {"query_type", "select"},
+            {"where_values", nlohmann::json({
+                 {"ref", devId.toString(QUuid::StringFormat::WithoutBraces).toStdString()}
+             })}
+        };
+
+        std::string base64_param = QByteArray::fromStdString(query_param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", base64_param}
+                     });
+
+    }
+}
+
+void WebSocketClient::get_workplace_view_options()
+{
+    if(wsSettings){
+        QUuid devId = QUuid::fromString(wsSettings->deviceId());
+        if(devId.isNull()){
+            qCritical() << __FUNCTION__ << "Не верный идентификатор устройства!";
+            return;
+        }
+        nlohmann::json query_param = {
+            {"table_name", "DevicesView"},
+            {"query_type", "select"},
+            {"where_values", nlohmann::json({
+                 {"Devices.ref", devId.toString(QUuid::StringFormat::WithoutBraces).toStdString()}
+             })}
+        };
+
+        std::string base64_param = QByteArray::fromStdString(query_param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", base64_param}
+                     });
+
     }
 }
 
@@ -322,7 +400,7 @@ void WebSocketClient::registerDevice()
 
         auto record = arcirk::database::devices();
         record.ref = devId.toString(QUuid::StringFormat::WithoutBraces).toStdString();
-        record.deviceType = "AndroidTablet";
+        record.deviceType = arcirk::enum_synonym(arcirk::database::devices_type::devTablet);
         record.first = product.toStdString();
         record.second = product.toStdString();
 

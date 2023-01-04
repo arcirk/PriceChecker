@@ -64,6 +64,9 @@ namespace arcirk{
         QString deviceId() const;
         QString product() const;
 
+        void update_workplace_data(const nlohmann::json& object);
+        void update_workplace_view(const nlohmann::json& object);
+
     private:
         QString m_host;
         int m_port;
@@ -79,14 +82,14 @@ namespace arcirk{
 
         arcirk::server::server_config conf;
         arcirk::client::client_private_config client_conf;
+        arcirk::database::devices m_workplace;
+        arcirk::database::devices_view m_workplace_view;
 
         QString httpService() const;
         QString httpPwd() const;
         QString httpUser() const;
 
         QString host() const;
-
-
 
 
         bool keyboardInputMode();
@@ -114,6 +117,7 @@ namespace arcirk{
         void keyboardInputModeChanged();
         void priceCheckerModeChanged();
         void httpUserChanged();
+        void updateWorkplaceView(const QString& org, const QString& suborg, const QString& stock, const QString& price);
     };
 
 }

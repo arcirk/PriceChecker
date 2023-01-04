@@ -76,6 +76,9 @@ private:
 
     void parse_exec_query_result(arcirk::server::server_response& resp);
 
+    void get_workplace_options();
+    void get_workplace_view_options();
+
     void asyncAwait(){
         if(m_async_await.size() > 0){
             auto f = m_async_await.dequeue();

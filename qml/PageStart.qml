@@ -8,6 +8,10 @@ Page {
 
     id: pageConnanctions
     property string theme: "Dark"
+    property alias organization: org.text
+    property alias subdivision: suborg.text
+    property alias warehouse: stock.text
+    property alias price: priceText.text
 
     GridLayout{
         id: grid
@@ -23,8 +27,8 @@ Page {
                text: "Организация:"
            }
            Text{
+               id: org
                topPadding: 10
-               text: "Тест"
                color: "gray"
            }
 
@@ -34,8 +38,9 @@ Page {
                color: "gray"
            }
            Text{
+               id: suborg
                color: "gray"
-               text: "Тест"
+
            }
            Text{
                leftPadding: 10
@@ -44,7 +49,7 @@ Page {
            }
            Text{
                color: "gray"
-               text: "Тест"
+               id: stock
            }
            Text{
                leftPadding: 10
@@ -53,7 +58,7 @@ Page {
            }
            Text{
                color: "gray"
-               text: "Тест"
+               id: priceText
            }
     }
 
