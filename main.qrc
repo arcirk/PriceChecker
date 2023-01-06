@@ -13,5 +13,8 @@
         <file>qml/PageStart.qml</file>
         <file>img/info16.png</file>
         <file>img/error16.png</file>
+        <file>img/qr16.png</file>
+        <file>img/exampleQr.png</file>
+        <file>qml/EnterBarcodeDialog.qml</file>
     </qresource>
 </RCC>

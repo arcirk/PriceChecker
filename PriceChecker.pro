@@ -8,6 +8,9 @@ SOURCES += \
 #        src/httpservice.cpp \
 #        src/serverresponse.cpp \
 #        src/websocket.cpp \
+    src/barcode_info.cpp \
+    src/barcode_parser.cpp \
+    src/httpservice.cpp \
     src/websockets.cpp \
         src/wsSettings.cpp
 
@@ -29,6 +32,9 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
+    include/barcode_info.hpp \
+    include/barcode_parser.hpp \
+    include/httpservice.hpp \
     include/includes.hpp \
     include/shared_struct.hpp \
     include/websockets.hpp \

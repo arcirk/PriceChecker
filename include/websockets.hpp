@@ -7,6 +7,7 @@
 #include "wsSettings.hpp"
 #include "shared_struct.hpp"
 #include <QQueue>
+#include "barcode_info.hpp"
 
 typedef std::function<void()> async_await;
 
@@ -14,10 +15,10 @@ class WebSocketClient : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QUrl url READ getUrl WRITE setUrl NOTIFY urlChanged)
-    Q_PROPERTY(QString typePriceRef READ typePriceRef WRITE setTypePriceRef NOTIFY typePriceRefChanged)
-    Q_PROPERTY(QString stockRef READ stockRef WRITE setStockRef NOTIFY stockRefChanged)
-    Q_PROPERTY(QString typePrice READ typePrice WRITE setTypePrice NOTIFY typePriceChanged)
-    Q_PROPERTY(QString stock READ stock WRITE setStock NOTIFY stockChanged)
+//    Q_PROPERTY(QString typePriceRef READ typePriceRef WRITE setTypePriceRef NOTIFY typePriceRefChanged)
+//    Q_PROPERTY(QString stockRef READ stockRef WRITE setStockRef NOTIFY stockRefChanged)
+//    Q_PROPERTY(QString typePrice READ typePrice WRITE setTypePrice NOTIFY typePriceChanged)
+//    Q_PROPERTY(QString stock READ stock WRITE setStock NOTIFY stockChanged)
 
 public:
     explicit WebSocketClient(const QUrl& url, QObject *parent = nullptr);
@@ -30,17 +31,17 @@ public:
     Q_INVOKABLE void open(arcirk::Settings * sett);
     Q_INVOKABLE void close();
 
-    QString typePriceRef() const;
-    QString stockRef() const;
+//    QString typePriceRef() const;
+//    QString stockRef() const;
 
-    void setTypePriceRef(const QString& value);
-    void setStockRef(const QString& value);
+//    void setTypePriceRef(const QString& value);
+//    void setStockRef(const QString& value);
 
-    QString typePrice() const;
-    QString stock() const;
+//    QString typePrice() const;
+//    QString stock() const;
 
-    void setTypePrice(const QString& value);
-    void setStock(const QString& value);
+//    void setTypePrice(const QString& value);
+//    void setStock(const QString& value);
 
     Q_INVOKABLE void setUrl(const QUrl& url);
     Q_INVOKABLE QUrl getUrl() const;
@@ -49,14 +50,16 @@ public:
 
     Q_INVOKABLE void updateHttpServiceConfiguration();
 
-    Q_INVOKABLE QString crypt(const QString& source, const QString& key);
+    Q_INVOKABLE QString cryptPass(const QString& source, const QString& key);
 
     Q_INVOKABLE void registerDevice();
+
+    Q_INVOKABLE void get_barcode_information(const QString& barcode, BarcodeInfo* bInfo);
 
 private:
     QWebSocket* m_client;
     arcirk::Settings * wsSettings;
-    arcirk::client::checker_conf  chk_conf;
+    //arcirk::client::checker_conf  chk_conf;
 
     QUuid m_currentSession;
     QUuid m_currentUserUuid;
@@ -77,6 +80,7 @@ private:
     void parse_exec_query_result(arcirk::server::server_response& resp);
 
     void get_workplace_options();
+
     void get_workplace_view_options();
 
     void asyncAwait(){
@@ -94,10 +98,10 @@ private slots:
     void onError(QAbstractSocket::SocketError error);
 
 signals:
-    void typePriceRefChanged();
-    void stockRefChanged();
-    void typePriceChanged();
-    void stockChanged();
+//    void typePriceRefChanged();
+//    void stockRefChanged();
+//    void typePriceChanged();
+//    void stockChanged();
     void urlChanged();
 
     void displayError(const QString& what, const QString& err);

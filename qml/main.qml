@@ -7,7 +7,8 @@ import QtQuick.Layouts 1.12
 
 import Settings 1.0
 import WebSocketClient 1.0
-
+import BarcodeParser 1.0
+import BarcodeInfo 1.0
 
 ApplicationWindow {
     width: 1280
@@ -18,10 +19,62 @@ ApplicationWindow {
     property string myTheme: "Dark"
     Material.theme: myTheme === "Light" ? Material.Light : Material.Dark
 
+    property BarcodeParser wsBarcodeParser: BarcodeParser{
+        onBarcode: function(value){
+            //console.log(value)
+            wsClient.get_barcode_information(value, wsBarcodeInfo)
+        }
+    }
+
+    property BarcodeInfo wsBarcodeInfo: BarcodeInfo {
+        id: barcodeInfo;
+
+        onBarcodeInfoChanged: {
+            pageStart.senBarcode(wsBarcodeInfo);
+        }
+    }
+
+    Item {
+        //При использовании клавиатурного ввода на сканере
+        id: attachFocus
+        focus: wsSettings.keyboardInputMode
+        Keys.onPressed: (event)=>{
+            if(!attachFocus.focus)
+                return;
+            //console.log("" + event.key + " " + event.text);
+            wsBarcodeParser.addSumbol(event.key, event.text);
+        }
+    }
+
     OptionsDialog {
         id: optionsDlg
         visible: false
+
+        onWebSocketConnect: {
+            if(!wsClient.isStarted()){
+                wsClient.setUrl(wsSettings.url())
+                wsClient.open(wsSettings);
+            }
+        }
+
+        onVisibleChanged: {
+            attachFocus.focus = !optionsDlg.visible;
+        }
     }
+
+    EnterBarcodeDialog {
+        id: enterBarcodeDlg
+        visible: false
+
+        onEnterBarcodeFromKeyboard: function(value){
+            wsClient.get_barcode_information(value, wsBarcodeInfo)
+        }
+
+        onVisibleChanged: {
+            attachFocus.focus = !enterBarcodeDlg.visible;
+        }
+    }
+
 
     property Settings wsSettings: Settings{
         //deviceId: qtAndroidService.deviceId
@@ -31,6 +84,10 @@ ApplicationWindow {
             pageStart.subdivision = suborg;
             pageStart.warehouse = stok;
             pageStart.price = price;
+            pageScanner.organization = org;
+            pageScanner.subdivision = suborg;
+            pageScanner.warehouse = stok;
+            pageScanner.price = price;
         }
     }
 
@@ -47,7 +104,8 @@ ApplicationWindow {
             popupMessage.showError(what, err);
         }
         onConnectionChanged: function(state){
-            btnConnectionState.icon.source = state ?  "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
+            //btnConnectionState.icon.source = state ?  "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
+            mainToolBar.updateIcons(state)
             if(state){
                 popupMessage.show("Успешное подключение к серверу")
             }else
@@ -69,8 +127,32 @@ ApplicationWindow {
         id: mainToolBar
         width: parent.width
         Material.background: myTheme === "Light" ? "#efebe9" : "#424242"
+        function updateIcons(connectionState){
+            if(connectionState)
+               btnConnectionState.icon.source = "qrc:/img/lan_check_online.png"
+            else
+               btnConnectionState.icon.source = "qrc:/img/lan_check_offline.png"
+        }
+
         RowLayout{
-            //Layout.fillWidth: true
+            ToolButton{
+                id: btnScan
+                icon.source: "qrc:/img/qr16.png"
+                onClicked: {
+//                    if(stackView.currentItem != pageScanner){
+//                        var item = stackView.find(function(item) {
+//                            return item.objectName === "pageScanner";
+//                        })
+//                        if(item === null)
+//                            stackView.push(pageScanner);
+//                        else{
+//                            stackView.pop(item)
+//                        }
+//                    }else
+//                        stackView.pop()
+                    enterBarcodeDlg.visible = true
+                }
+            }
             Label{
                 id: lblTitle
                 Layout.fillWidth: true
@@ -84,7 +166,12 @@ ApplicationWindow {
                     icon.source: "qrc:/img/lan_check_offline.png"
 
                     onClicked: {
-
+                        if(!wsClient.isStarted()){
+                            wsClient.setUrl(wsSettings.url());
+                            wsClient.open(wsSettings);
+                        }else{
+                            wsClient.close();
+                        }
                     }
 
                 }
@@ -102,9 +189,9 @@ ApplicationWindow {
         }
     }
 
-    onWindowStateChanged: {
+    onWindowStateChanged: function(windowState) {
         console.log( "onWindowStateChanged (Window), state: " + windowState );
-        if(!wsClient.isStarted() && windowState != 1){
+        if(!wsClient.isStarted() && windowState !== Qt.WindowMinimized){
             wsClient.setUrl(wsSettings.url())
 //            wsClient.setName(wsSettings.userName)
 //            wsClient.setHash(wsSettings.hash)

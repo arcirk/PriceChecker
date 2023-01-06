@@ -67,6 +67,12 @@ namespace arcirk{
         void update_workplace_data(const nlohmann::json& object);
         void update_workplace_view(const nlohmann::json& object);
 
+        arcirk::database::devices& workplace_options();
+
+        QString getHttpService() const;
+        QString getHttpPassword()  const;
+        QString getHttpUser() const;
+
     private:
         QString m_host;
         int m_port;

@@ -1,5 +1,10 @@
 #include "include/websockets.hpp"
+//#include <QNetworkInterface>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QEventLoop>
 
+#define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 void* _crypt(void* data, unsigned data_size, void* key, unsigned key_size)
 {
     assert(data && data_size);
@@ -14,6 +19,18 @@ void* _crypt(void* data, unsigned data_size, void* key, unsigned key_size)
         if (kptr == eptr) kptr = (uint8_t*)key; // переход на начало ключа
     }
     return data;
+}
+
+std::string crypt(const std::string &source, const std::string& key) {
+
+    void * text = (void *) source.c_str();
+    void * pass = (void *) key.c_str();
+    _crypt(text, ARR_SIZE(source.c_str()), pass, ARR_SIZE(key.c_str()));
+
+    std::string result((char*)text);
+
+
+    return result;
 }
 
 WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
@@ -80,45 +97,45 @@ void WebSocketClient::close()
         m_client->close();
 }
 
-QString WebSocketClient::typePriceRef() const
-{
-    return QString::fromStdString(chk_conf.typePriceRef);
-}
+//QString WebSocketClient::typePriceRef() const
+//{
+//    return QString::fromStdString(wsSettings.workplace_options().);
+//}
 
-QString WebSocketClient::stockRef() const
-{
-    return QString::fromStdString(chk_conf.stockRef);
-}
+//QString WebSocketClient::stockRef() const
+//{
+//    return QString::fromStdString(chk_conf.stockRef);
+//}
 
-void WebSocketClient::setTypePriceRef(const QString &value)
-{
-    chk_conf.typePriceRef = value.toStdString();
-}
+//void WebSocketClient::setTypePriceRef(const QString &value)
+//{
+//    chk_conf.typePriceRef = value.toStdString();
+//}
 
-void WebSocketClient::setStockRef(const QString &value)
-{
-    chk_conf.stockRef = value.toStdString();
-}
+//void WebSocketClient::setStockRef(const QString &value)
+//{
+//    chk_conf.stockRef = value.toStdString();
+//}
 
-QString WebSocketClient::typePrice() const
-{
-    return QString::fromStdString(chk_conf.typePrice);
-}
+//QString WebSocketClient::typePrice() const
+//{
+//    return QString::fromStdString(chk_conf.typePrice);
+//}
 
-QString WebSocketClient::stock() const
-{
-    return QString::fromStdString(chk_conf.stock);
-}
+//QString WebSocketClient::stock() const
+//{
+//    return QString::fromStdString(chk_conf.stock);
+//}
 
-void WebSocketClient::setTypePrice(const QString &value)
-{
-    chk_conf.typePrice = value.toStdString();
-}
+//void WebSocketClient::setTypePrice(const QString &value)
+//{
+//    chk_conf.typePrice = value.toStdString();
+//}
 
-void WebSocketClient::setStock(const QString &value)
-{
-    chk_conf.stock = value.toStdString();
-}
+//void WebSocketClient::setStock(const QString &value)
+//{
+//    chk_conf.stock = value.toStdString();
+//}
 
 void WebSocketClient::setUrl(const QUrl &url)
 {
@@ -189,8 +206,10 @@ QString WebSocketClient::get_sha1(const QByteArray& p_arg){
 
 void WebSocketClient::parse_response(const QString &resp)
 {
+    //qDebug() << __FUNCTION__;
     try {
         auto msg = pre::json::from_json<arcirk::server::server_response>(resp.toStdString());
+        qDebug() << __FUNCTION__ << QString::fromStdString(msg.command);
         if(msg.command == arcirk::enum_synonym(arcirk::server::server_commands::SetClientParam)){
             if(msg.message == "OK"){
                 QString result = QByteArray::fromBase64(msg.param.data());
@@ -216,12 +235,14 @@ void WebSocketClient::parse_response(const QString &resp)
                 emit displayError("ExecuteSqlQuery", QString::fromStdString(msg.message));
         }
     } catch (std::exception& e) {
+        qCritical() << __FUNCTION__ << e.what();
         emit displayError("parse_response", e.what());
     }
 }
 
 void WebSocketClient::send_command(arcirk::server::server_commands cmd, const nlohmann::json &param)
 {
+    qDebug() << __FUNCTION__ << QString::fromStdString(arcirk::enum_synonym(cmd));
     std::string p = param.dump();
     QByteArray ba(p.c_str());
     nlohmann::json _param = {
@@ -235,6 +256,7 @@ void WebSocketClient::send_command(arcirk::server::server_commands cmd, const nl
 
 void WebSocketClient::update_server_configuration(const QString &typeConf, const std::string &srv_resp)
 {
+    qDebug() << __FUNCTION__;
     try {
         std::string p = QByteArray::fromBase64(srv_resp.data()).toStdString();
         nlohmann::json resp = nlohmann::json::parse(p);
@@ -258,6 +280,7 @@ void WebSocketClient::update_server_configuration(const QString &typeConf, const
 
 void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &resp)
 {
+
     try {
         nlohmann::json _p = nlohmann::json::parse(QByteArray::fromBase64(resp.param.data()).toStdString());
         if(_p.is_discarded()){
@@ -270,6 +293,9 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
         auto param = nlohmann::json::parse(p);
         std::string table_name = param.value("table_name", "");
         std::string query_type = param.value("query_type", "");
+
+        qDebug() << __FUNCTION__ << "table_name:" << table_name.c_str() << "query_type: " << query_type.c_str();
+
         if(resp.message == "OK" && !table_name.empty()){
             nlohmann::json tb_name = table_name;
             if(tb_name.get<arcirk::database::tables>() == arcirk::database::tables::tbDevices){
@@ -307,23 +333,27 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
         asyncAwait();
 
     } catch (const std::exception& e) {
-        qCritical() << e.what();
+        qCritical() << __FUNCTION__ << e.what();
     }
 }
 
 void WebSocketClient::get_workplace_options()
 {
+    qDebug() << __FUNCTION__ << wsSettings->deviceId();
+
     if(wsSettings){
         QUuid devId = QUuid::fromString(wsSettings->deviceId());
         if(devId.isNull()){
             qCritical() << __FUNCTION__ << "Не верный идентификатор устройства!";
             return;
         }
+        std::string ref = devId.toString(QUuid::StringFormat::WithoutBraces).toStdString();
+        qDebug() << QString::fromStdString(ref);
         nlohmann::json query_param = {
             {"table_name", "Devices"},
             {"query_type", "select"},
             {"where_values", nlohmann::json({
-                 {"ref", devId.toString(QUuid::StringFormat::WithoutBraces).toStdString()}
+                 {"ref", ref}
              })}
         };
 
@@ -332,11 +362,14 @@ void WebSocketClient::get_workplace_options()
                          {"query_param", base64_param}
                      });
 
-    }
+    }else
+        qCritical() << __FUNCTION__ << "Не инициализирован объект свойств!";
 }
 
 void WebSocketClient::get_workplace_view_options()
 {
+    qDebug() << __FUNCTION__;
+
     if(wsSettings){
         QUuid devId = QUuid::fromString(wsSettings->deviceId());
         if(devId.isNull()){
@@ -347,7 +380,7 @@ void WebSocketClient::get_workplace_view_options()
             {"table_name", "DevicesView"},
             {"query_type", "select"},
             {"where_values", nlohmann::json({
-                 {"Devices.ref", devId.toString(QUuid::StringFormat::WithoutBraces).toStdString()}
+                 {"ref", devId.toString(QUuid::StringFormat::WithoutBraces).toStdString()}
              })}
         };
 
@@ -372,23 +405,17 @@ void WebSocketClient::updateHttpServiceConfiguration()
     }
 }
 
-QString WebSocketClient::crypt(const QString &source, const QString &key)
+QString WebSocketClient::cryptPass(const QString &source, const QString &key)
 {
-    #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
-    std::string _source = source.toStdString();
-    std::string _key = source.toStdString();
-    void * text = (void *) _source.c_str();
-    void * pass = (void *) _key.c_str();
-
-    _crypt(text, ARR_SIZE(_source.c_str()), pass, ARR_SIZE(_key.c_str()));
-
-    std::string result((char*)text);
+    std::string result = crypt(source.toStdString(), key.toStdString());
 
     return QString::fromStdString(result);
 }
 
 void WebSocketClient::registerDevice()
 {
+    qDebug() << __FUNCTION__;
+
     if(wsSettings){
         QUuid devId = QUuid::fromString(wsSettings->deviceId());
         if(devId.isNull()){
@@ -418,4 +445,85 @@ void WebSocketClient::registerDevice()
                          {"query_param", query_param}
                      });
     }
+}
+
+void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInfo* bInfo)
+{
+
+    if(!wsSettings){
+        qCritical() << "Не инициализирован объект настроек!";
+        return;
+    }
+
+    if(wsSettings->workplace_options().warehouse.empty() || wsSettings->workplace_options().price.empty()){
+        qCritical() << "Не инициализированы настройки рабочего места!";
+        return;
+    }
+
+    if(wsSettings->getHttpService().isEmpty()){
+        qCritical() << "HTTP сервис 1С предприятия не указан!";
+        return;
+    }
+
+    QEventLoop loop;
+    int httpStatus = 200;
+    QByteArray httpData;
+    QNetworkAccessManager httpService;
+
+    auto finished = [&loop, &httpStatus, &httpData](QNetworkReply* reply) -> void
+    {
+       QVariant status_code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+       if(status_code.isValid()){
+           httpStatus = status_code.toInt();
+           if(httpStatus != 200){
+                qCritical() << __FUNCTION__ << "Error: " << httpStatus << " " + reply->errorString() ;
+           }else
+           {
+               httpData = reply->readAll();
+           }
+       }
+       loop.quit();
+
+    };
+
+    loop.connect(&httpService, &QNetworkAccessManager::finished, finished);
+
+    QNetworkRequest request(wsSettings->getHttpService() + "/info");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QString pwd = cryptPass(wsSettings->getHttpPassword(), "my_key");
+    QString concatenated = wsSettings->getHttpUser() + ":" + pwd;
+    QByteArray data = concatenated.toLocal8Bit().toBase64();
+    QString headerData = "Basic " + data;
+    request.setRawHeader("Authorization", headerData.toLocal8Bit());
+
+    //временный код, для совместимости, http серис используется старой весией прайс чекера
+    auto bi = arcirk::client::barcode_info();
+    nlohmann::json param = {
+        {"barcode", barcode.toStdString()},
+        {"command", "InfoFromBarcode"},
+        {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
+        {"typePrice", wsSettings->workplace_options().price},
+        {"stockRef", wsSettings->workplace_options().warehouse},
+        {"eng", true},
+        {"byteArray", true}
+    };
+
+    httpService.post(request, QByteArray::fromStdString(param.dump()));
+    loop.exec();
+
+    if(httpStatus != 200){
+        return;
+    }
+
+    if(httpData.isEmpty())
+        return;
+
+    try {
+        bInfo->set_barcode_info_object(httpData.toStdString());
+    } catch (const std::exception& e) {
+        qCritical() << __FUNCTION__ << e.what();
+        emit displayError("get_barcode_information", "Не верный формат данных.");
+    }
+
 }

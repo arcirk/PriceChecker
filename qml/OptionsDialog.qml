@@ -12,13 +12,15 @@ Popup {
     modal: true
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-    //Component.onCompleted: visible = true
+
     property string theme: "Dark"
 
     function updateHttpServiceConfiguration(hsHost, hsUser, hsPwd){
         wsSettings.httpService = hsHost;
         txtHttpService.text = hsHost;
     }
+
+    signal webSocketConnect();
 
     onVisibleChanged: {
         wsSettings.save();
@@ -105,7 +107,8 @@ Popup {
 
                 onEditingFinished: {
                     wsSettings.hash = wsClient.generateHash(txtUser.text, txtPass.text)
-                    wsSettings.httpPwd = wsClient.crypt(txtPass.text, "my_key");
+                    wsSettings.httpPwd = wsClient.cryptPass(txtPass.text, "my_key");
+                    wsSettings.save();
                 }
 
                 onEnabledChanged: {
@@ -292,17 +295,7 @@ Popup {
                 text: "Подключится"
 
                 onClicked: {
-    //                if(wsClient.isStarted())
-    //                    wsClient.close();
-    //                else{
-    //                    wsClient.setUrl(wsSettings.url())
-    //                    wsClient.setName(wsSettings.userName)
-    //                    wsClient.setHash(wsSettings.hash)
-    //                    wsClient.setAppName("qr_pay_mobile_client")
-    //                    wsClient.setDeviceId(wsSettings.deviceId)
-    //                    wsSettings.save();
-    //                    wsClient.open()
-    //                }
+                    popupSettingsDialog.webSocketConnect();
                 }
             }
 

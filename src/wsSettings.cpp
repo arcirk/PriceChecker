@@ -309,6 +309,26 @@ namespace arcirk{
         }
     }
 
+    arcirk::database::devices &Settings::workplace_options()
+    {
+        return m_workplace;
+    }
+
+    QString Settings::getHttpService() const
+    {
+        return httpService();
+    }
+
+    QString Settings::getHttpPassword() const
+    {
+        return httpPwd();
+    }
+
+    QString Settings::getHttpUser() const
+    {
+        return httpUser();
+    }
+
     QString Settings::deviceId() const
     {
         return m_device_id.toString(QUuid::WithoutBraces);

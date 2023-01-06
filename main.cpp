@@ -4,8 +4,8 @@
 #include <QQmlContext>
 #include "include/wsSettings.hpp"
 #include "include/websockets.hpp"
-
-//#include "include/websocket.hpp"
+#include "include/barcode_parser.hpp"
+#include "include/barcode_info.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -15,6 +15,8 @@ int main(int argc, char *argv[])
 
     qmlRegisterType<arcirk::Settings>("Settings", 1, 0, "Settings");
     qmlRegisterType<WebSocketClient>("WebSocketClient", 1, 0, "WebSocketClient");
+    qmlRegisterType<BarcodeParser>("BarcodeParser", 1, 0, "BarcodeParser");
+    qmlRegisterType<BarcodeInfo>("BarcodeInfo", 1, 0, "BarcodeInfo");
 
     QQmlApplicationEngine engine;
     //const QUrl url(u"qrc:/PraceChecker/main.qml"_qs);
