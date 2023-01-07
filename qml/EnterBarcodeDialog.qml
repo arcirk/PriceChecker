@@ -13,6 +13,8 @@ Popup {
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
 
+    property alias br: txtBarcode.text
+
     signal enterBarcodeFromKeyboard(string value);
 
     GridLayout{
@@ -26,6 +28,7 @@ Popup {
             id: txt
             font.pixelSize: 20
             text: qsTr("Введите штрихкод:")
+            color: "white"
         }
 
         TextField{

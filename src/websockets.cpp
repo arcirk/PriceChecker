@@ -151,13 +151,14 @@ void WebSocketClient::onConnected()
     qDebug() << __FUNCTION__;
 
     auto param = arcirk::client::client_param();
-    param.app_name = "PriceCjecker";
+    param.app_name = "PriceChecker";
     param.host_name = QSysInfo::machineHostName().toStdString();
     param.system_user = "root";
 
     if(wsSettings){
         param.user_name = wsSettings->userName().toStdString();
         param.hash = wsSettings->hash().toStdString();
+        param.device_id = wsSettings->deviceId().toStdString();
     }
 
     std::string p = pre::json::to_json(param).dump();
@@ -233,11 +234,45 @@ void WebSocketClient::parse_response(const QString &resp)
                 parse_exec_query_result(msg);
             else
                 emit displayError("ExecuteSqlQuery", QString::fromStdString(msg.message));
+        }else if(msg.command == arcirk::enum_synonym(arcirk::server::server_commands::CommandToClient)){
+            //qDebug() << __FUNCTION__ << "CommandToClient";
+            parse_command_to_client(msg.receiver, msg.sender, msg.param);
         }
     } catch (std::exception& e) {
         qCritical() << __FUNCTION__ << e.what();
         emit displayError("parse_response", e.what());
     }
+}
+
+void WebSocketClient::parse_command_to_client(const std::string& receiver, const std::string& sender, const std::string& param){
+
+    try {
+        auto param_ = nlohmann::json::parse(QByteArray::fromBase64(param.data()).toStdString());
+        std::string command = param_.value("command", "");
+        auto cmd_param = nlohmann::json::parse(QByteArray::fromBase64(param_.value("param", "").data()).toStdString());
+        if(command.empty()){
+            qCritical() << __FUNCTION__ << "Ошибка формата параметров команды";
+            return;
+        }
+
+        if(command == arcirk::enum_synonym(arcirk::server::server_commands::SetNewDeviceId)){
+            if(wsSettings){
+                if(m_currentSession.toString(QUuid::WithoutBraces).toStdString() != sender){
+                    std::string new_device_id = cmd_param.value("device_id", "");
+                    if(new_device_id.empty()){
+                        qCritical() << __FUNCTION__ << "Передан не корректный идентификатор устройства!";
+                        return;
+                    }
+                    wsSettings->setDeviceId(QString::fromStdString(new_device_id));
+                    wsSettings->save();
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        qCritical() << e.what();
+    }
+
+
 }
 
 void WebSocketClient::send_command(arcirk::server::server_commands cmd, const nlohmann::json &param)
@@ -497,16 +532,26 @@ void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInf
     QString headerData = "Basic " + data;
     request.setRawHeader("Authorization", headerData.toLocal8Bit());
 
-    //временный код, для совместимости, http серис используется старой весией прайс чекера
     auto bi = arcirk::client::barcode_info();
+
+    //временный код, для совместимости, http серис используется старой весией прайс чекера
+//    nlohmann::json param = {
+//        {"barcode", barcode.toStdString()},
+//        {"command", "InfoFromBarcode"},
+//        {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
+//        {"typePrice", wsSettings->workplace_options().price},
+//        {"stockRef", wsSettings->workplace_options().warehouse},
+//        {"eng", true},
+//        {"byteArray", true}
+//    };
+
     nlohmann::json param = {
         {"barcode", barcode.toStdString()},
-        {"command", "InfoFromBarcode"},
+        {"command", "BarcodeInfo"},
         {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
-        {"typePrice", wsSettings->workplace_options().price},
-        {"stockRef", wsSettings->workplace_options().warehouse},
-        {"eng", true},
-        {"byteArray", true}
+        {"price", wsSettings->workplace_options().price},
+        {"warehouse", wsSettings->workplace_options().warehouse},
+        {"image_data", false} //wsSettings->isShowImage() тормозит
     };
 
     httpService.post(request, QByteArray::fromStdString(param.dump()));
@@ -519,11 +564,90 @@ void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInf
     if(httpData.isEmpty())
         return;
 
+    //bool is_error = false;
     try {
         bInfo->set_barcode_info_object(httpData.toStdString());
     } catch (const std::exception& e) {
         qCritical() << __FUNCTION__ << e.what();
         emit displayError("get_barcode_information", "Не верный формат данных.");
+        bInfo->clear("Ошибка чтения штрихкода");
+        //is_error = true;
     }
+
+//    if(wsSettings->isShowImage() && !is_error){
+//        if(!bInfo->uuid().empty()){
+//            param = {
+//                    {"uuid", bInfo->uuid()},
+//                    {"command", "GetImage"}
+//                };
+//            httpService.post(request, QByteArray::fromStdString(param.dump()));
+//            loop.exec();
+
+//            if(httpStatus != 200){
+//                return;
+//            }
+
+//            if(httpData.isEmpty())
+//                return;
+
+//            bInfo->set_image_data(httpData.toStdString());
+//        }
+//    }
+}
+
+void WebSocketClient::get_image_data(BarcodeInfo *bInfo)
+{
+    if(!wsSettings->isShowImage() || bInfo->uuid().empty())
+        return;
+
+    QEventLoop loop;
+    int httpStatus = 200;
+    QByteArray httpData;
+    QNetworkAccessManager httpService;
+
+    auto finished = [&loop, &httpStatus, &httpData](QNetworkReply* reply) -> void
+    {
+       QVariant status_code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+       if(status_code.isValid()){
+           httpStatus = status_code.toInt();
+           if(httpStatus != 200){
+                qCritical() << __FUNCTION__ << "Error: " << httpStatus << " " + reply->errorString() ;
+           }else
+           {
+               httpData = reply->readAll();
+           }
+       }
+       loop.quit();
+
+    };
+
+    loop.connect(&httpService, &QNetworkAccessManager::finished, finished);
+
+    QNetworkRequest request(wsSettings->getHttpService() + "/info");
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QString pwd = cryptPass(wsSettings->getHttpPassword(), "my_key");
+    QString concatenated = wsSettings->getHttpUser() + ":" + pwd;
+    QByteArray data = concatenated.toLocal8Bit().toBase64();
+    QString headerData = "Basic " + data;
+    request.setRawHeader("Authorization", headerData.toLocal8Bit());
+
+    nlohmann::json param = {
+            {"uuid", bInfo->uuid()},
+            {"command", "GetImage"}
+        };
+    httpService.post(request, QByteArray::fromStdString(param.dump()));
+    loop.exec();
+
+    if(httpStatus != 200){
+        return;
+    }
+
+    if(httpData.isEmpty())
+        return;
+
+    //bInfo->set_image_from_base64(httpData.toStdString());
+    bInfo->set_image(httpData);
+
 
 }

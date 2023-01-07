@@ -16,5 +16,7 @@
         <file>img/qr16.png</file>
         <file>img/exampleQr.png</file>
         <file>qml/EnterBarcodeDialog.qml</file>
+        <file>img/longOperation.gif</file>
+        <file>img/to_data.png</file>
     </qresource>
 </RCC>

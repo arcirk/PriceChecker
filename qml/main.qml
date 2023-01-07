@@ -30,7 +30,18 @@ ApplicationWindow {
         id: barcodeInfo;
 
         onBarcodeInfoChanged: {
-            pageStart.senBarcode(wsBarcodeInfo);
+            pageStart.setBarcode(wsBarcodeInfo);
+            if(wsBarcodeInfo.isLongImgLoad)
+                wsClient.get_image_data(wsBarcodeInfo);
+        }
+
+        onImageSourceChanged: {
+            //console.log("onImageSourceChanged");
+            pageStart.changeImageSource(wsBarcodeInfo);
+        }
+
+        onClearData: {
+            pageStart.setBarcode(wsBarcodeInfo);
         }
     }
 
@@ -107,19 +118,20 @@ ApplicationWindow {
             //btnConnectionState.icon.source = state ?  "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
             mainToolBar.updateIcons(state)
             if(state){
-                popupMessage.show("Успешное подключение к серверу")
+                popupMessage.show("Успешное подключение к серверу");
             }else
-                popupMessage.showError("Ошибка", "Сервер не доступен!")
+                popupMessage.showError("Ошибка", "Сервер не доступен!");
 
-            //pageOptions.connectionChanged(state)
+            if(optionsDlg.visible)
+                optionsDlg.connectionState(state);
         }
 
         onUpdateHsConfiguration: function(hsHost, hsUser, hsPwd){
-            optionsDlg.updateHttpServiceConfiguration(hsHost, hsUser, hsPwd)
+            optionsDlg.updateHttpServiceConfiguration(hsHost, hsUser, hsPwd);
         }
 
         onNotify: function(message){
-            popupMessage.show(message)
+            popupMessage.show(message);
         }
     }
 
@@ -150,6 +162,7 @@ ApplicationWindow {
 //                        }
 //                    }else
 //                        stackView.pop()
+                    enterBarcodeDlg.br = ""
                     enterBarcodeDlg.visible = true
                 }
             }
@@ -172,6 +185,7 @@ ApplicationWindow {
                         }else{
                             wsClient.close();
                         }
+                        attachFocus.focus = true;
                     }
 
                 }

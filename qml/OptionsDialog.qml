@@ -7,11 +7,13 @@ import QtQuick.Layouts 1.12
 Popup {
     id: popupSettingsDialog
     anchors.centerIn: parent
-    width: parent.width / 2
+    width: screenWidth > 1000 ? parent.width / 2 : parent.width - 20
     //height: 200
     modal: true
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+    property int fontPixelSize: screenWidth > 1000 ? 20 : 12
 
     property string theme: "Dark"
 
@@ -23,7 +25,20 @@ Popup {
     signal webSocketConnect();
 
     onVisibleChanged: {
-        wsSettings.save();
+        if(!popupSettingsDialog.visible)
+            wsSettings.save();
+        else
+            if(screenWidth > 1000)
+                btnConnected.text = wsClient.isStarted() ? "Отключится" : "Подключится";
+            else
+                btnConnected.icon.source = wsClient.isStarted() ? "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
+    }
+
+    function connectionState(value){
+        if(screenWidth > 1000)
+            btnConnected.text = value ? "Отключится" : "Подключится";
+        else
+            btnConnected.icon.source = wsClient.isStarted() ? "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
     }
 
     GridLayout{
@@ -32,17 +47,17 @@ Popup {
         anchors.right: parent.right
         anchors.left: parent.left
         anchors.margins: 10
-        columnSpacing: 20
+        columnSpacing: fontPixelSize
 
         Text{
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: "Сервер:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
         }
 
         TextField{
             id: txtServer
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: wsSettings.url() //"ws://<domainname>"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
             Material.accent: Material.Blue
@@ -59,14 +74,14 @@ Popup {
         }
 
         Text{
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: "Пользователь:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
         }
 
         TextField{
             id: txtUser
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: wsSettings.userName
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
             Material.accent: Material.Blue
@@ -85,7 +100,7 @@ Popup {
         }
 
         Text{
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: "Пароль:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
         }
@@ -94,7 +109,7 @@ Popup {
             Layout.fillWidth: true
             TextField{
                 id: txtPass
-                font.pixelSize: 20
+                font.pixelSize: fontPixelSize
                 text: wsSettings.hash.length > 0 ? "***" : "";
                 color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
 
@@ -160,14 +175,14 @@ Popup {
             }
         }
         Text{
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: "Идентификатор:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
         }
 
         TextField{
             id: txtDeviceId
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: wsSettings.deviceId
             color: "grey"
             Material.accent: Material.Blue
@@ -177,13 +192,13 @@ Popup {
 
         }
         Text{
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: "Продукт:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
         }
         TextField{
             id: txtProduct
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: wsSettings.product
             color: "grey"
             Material.accent: Material.Blue
@@ -193,13 +208,13 @@ Popup {
 
         }
         Text{
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: "Http сервис 1C:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
         }
         TextField{
             id: txtHttpService
-            font.pixelSize: 20
+            font.pixelSize: fontPixelSize
             text: wsSettings.httpService
             //color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
             Material.accent: Material.Blue
@@ -220,21 +235,22 @@ Popup {
         }
 
         CheckBox{
-            id: isQrImage
-            checked: wsSettings.isQrImage;
-            text: "Показывать картинку штрихода"
+            id: showImage
+            checked: wsSettings.showImage;
+            text: "Показывать картинку"
+            font.pixelSize: fontPixelSize
             Layout.fillWidth: true
             Material.accent: Material.Blue
             contentItem: Label {
-                text: isQrImage.text
-                font: isQrImage.font
+                text: showImage.text
+                font: showImage.font
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
-                leftPadding: isQrImage.indicator.width + isQrImage.spacing
+                leftPadding: showImage.indicator.width + showImage.spacing
                 wrapMode: Label.Wrap
             }
             onCheckedChanged: {
-                wsSettings.isQrImage = isQrImage.checked
+                wsSettings.showImage = showImage.checked
                 wsSettings.save()
             }
         }
@@ -245,6 +261,7 @@ Popup {
             id: isKeyboardMode
             checked: wsSettings.keyboardInputMode;
             text: "Режим клавиатурного ввода"
+            font.pixelSize: fontPixelSize
             Layout.fillWidth: true
             Material.accent: Material.Blue
             contentItem: Label {
@@ -261,12 +278,13 @@ Popup {
             }
         }
         Label{
-            text: ""
+            text: ""            
         }
         CheckBox{
             id: isPriceCheckerMode
             checked: wsSettings.priceCheckerMode;
             text: "Режим прайс-чекера"
+            font.pixelSize: fontPixelSize
             Layout.fillWidth: true
             Material.accent: Material.Blue
             contentItem: Label {
@@ -286,29 +304,31 @@ Popup {
         }
         Label{
             text: ""
+            visible: screenWidth > 1000 ? true : false
         }
         RowLayout{
             Layout.alignment: Qt.AlignRight
+            Layout.columnSpan: screenWidth > 1000 ? 1 : 2
             Button{
                 id: btnConnected
-                //text: wsClient.isStarted() ? "Отключится" : "Подключится"
-                text: "Подключится"
-
+                text: screenWidth > 1000 ? (wsClient.isStarted() ? "Отключится" : "Подключится") : ""
+                icon.source:  screenWidth > 1000 ? (wsClient.isStarted() ? "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png") : ""
                 onClicked: {
-                    popupSettingsDialog.webSocketConnect();
+                    if(!wsClient.isStarted())
+                        popupSettingsDialog.webSocketConnect();
+                    else
+                       wsClient.close();
                 }
             }
 
             Button{
                 id: btnRegistyDevice
-                text: "Зарегистрировать"
-
+                text: screenWidth > 1000 ? "Зарегистрировать" : ""
+                icon.source:  screenWidth > 1000 ? "" : "qrc:/img/to_data.png"
                 onClicked: {
                     if(!wsClient.isStarted())
                         popupMessage.showError("Ошибка", "Клиент не подключен!")
                     else{
-//                        var result = wsClient.registerClientOn1C(wsSettings.httpService, wsSettings.userName, wsClient.crypt(wsSettings.httpPwd, "my_key"))
-//                        wsClient.registerClientToDatabase();
                         wsClient.registerDevice();
                     }
 
@@ -321,12 +341,6 @@ Popup {
 
                 onClicked: {
                     popupSettingsDialog.visible = false
-    //                if(!wsClient.isStarted())
-    //                    popupMessage.showError("Ошибка", "Клиент не подключен!")
-    //                else{
-    //                    var result = wsClient.registerClientOn1C(wsSettings.httpService, wsSettings.userName, wsClient.crypt(wsSettings.httpPwd, "my_key"))
-    //                    wsClient.registerClientToDatabase();
-    //                }
                 }
             }
         }

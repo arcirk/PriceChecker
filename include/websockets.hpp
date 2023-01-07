@@ -56,6 +56,8 @@ public:
 
     Q_INVOKABLE void get_barcode_information(const QString& barcode, BarcodeInfo* bInfo);
 
+    Q_INVOKABLE void get_image_data(BarcodeInfo* bInfo);
+
 private:
     QWebSocket* m_client;
     arcirk::Settings * wsSettings;
@@ -72,6 +74,8 @@ private:
     static QString get_sha1(const QByteArray& p_arg);
 
     void parse_response(const QString& resp);
+
+    void parse_command_to_client(const std::string& receiver, const std::string& sender, const std::string& param);
 
     void send_command(arcirk::server::server_commands cmd, const nlohmann::json& param = {});
 

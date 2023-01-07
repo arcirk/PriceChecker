@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QSysInfo>
 
+
 namespace arcirk{
 
     Settings::Settings(QObject *parent)
@@ -55,7 +56,7 @@ namespace arcirk{
 //            //m_priceCheckerMode = obj.value("priceCheckerMode").toBool();
 //            //if(!m_priceCheckerMode)
 //            m_priceCheckerMode = true; //в этом проекте всегда истина
-//            m_isQrImage = obj.value("isQrImage").toBool();
+//            m_showImage = obj.value("showImage").toBool();
 
 //        }else{
 //            m_host = "ws://localhost";
@@ -78,6 +79,8 @@ namespace arcirk{
     }
 
     void Settings::read_conf(){
+
+        qDebug() << __FUNCTION__;
 
         conf.ServerHost = "127.0.0.1";
         conf.ServerPort = 8080;
@@ -102,14 +105,16 @@ namespace arcirk{
             try {
                 conf = pre::json::from_json<server::server_config>(m_text);
             } catch (std::exception& e) {
-                qCritical() << e.what();
+                qCritical() << __FUNCTION__ << e.what();
             }
         }
     }
 
     void Settings::read_private_conf(){
 
-        client_conf.isQrImage = false;
+        qDebug() << __FUNCTION__;
+
+        client_conf.showImage = false;
         client_conf.keyboardInputMode = true;
         client_conf.priceCheckerMode = true;
 
@@ -129,36 +134,39 @@ namespace arcirk{
             try {
                 client_conf = pre::json::from_json<client::client_private_config>(m_text);
             } catch (std::exception& e) {
-                qCritical() << e.what();
+                qCritical() << __FUNCTION__ << e.what();
             }
         }
     }
 
     void Settings::write_conf(){
         try {
-            std::string result = to_string(pre::json::to_json(conf)) ;
+            std::string result = pre::json::to_json(conf).dump() ;
             auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
             auto fileName= path + "/price_checker_conf.json";
             QFile f(fileName);
+            qDebug() << fileName;
             f.open(QIODevice::WriteOnly);
             f.write(QByteArray::fromStdString(result));
             f.close();
         } catch (std::exception& e) {
-            qCritical() << e.what();
+            qCritical() << __FUNCTION__ << e.what();
         }
     }
 
     void Settings::write_private_conf(){
         try {
-            std::string result = to_string(pre::json::to_json(client_conf)) ;
+            client_conf.deviceId = deviceId().toStdString();
+            std::string result = pre::json::to_json(client_conf).dump() ;
             auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
             auto fileName= path + "/price_checker_private_conf.json";
+            qDebug() << fileName;
             QFile f(fileName);
             f.open(QIODevice::WriteOnly);
             f.write(QByteArray::fromStdString(result));
             f.close();
         } catch (std::exception& e) {
-            qCritical() << e.what();
+            qCritical() << __FUNCTION__ << e.what();
         }
     }
 
@@ -257,6 +265,8 @@ namespace arcirk{
 
     void Settings::save()
     {
+        qDebug() << __FUNCTION__;
+
         write_conf();
         write_private_conf();
 //        auto obj = QJsonObject();
@@ -270,7 +280,7 @@ namespace arcirk{
 //        obj.insert("httpPwd", m_httpPwd);
 //        obj.insert("keyboardInputMode", m_keyboardInputMode);
 //        obj.insert("priceCheckerMode", m_priceCheckerMode);
-//        obj.insert("isQrImage", m_isQrImage);
+//        obj.insert("showImage", m_showImage);
 
 //        auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 //        auto fileName= path + "/price_checker_conf.json";
@@ -329,6 +339,11 @@ namespace arcirk{
         return httpUser();
     }
 
+    bool Settings::isShowImage()
+    {
+        return showImage();
+    }
+
     QString Settings::deviceId() const
     {
         return m_device_id.toString(QUuid::WithoutBraces);
@@ -376,14 +391,14 @@ namespace arcirk{
         return client_conf.priceCheckerMode;
     }
 
-    void Settings::setIsQrImage(bool value)
+    void Settings::setShowImage(bool value)
     {
-        client_conf.isQrImage = value;
+        client_conf.showImage = value;
     }
 
-    bool Settings::isQrImage()
+    bool Settings::showImage()
     {
-        return client_conf.isQrImage;// m_isQrImage;
+        return client_conf.showImage;// m_showImage;
     }
 
     QString Settings::httpService() const

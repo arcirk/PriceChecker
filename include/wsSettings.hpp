@@ -30,7 +30,7 @@ namespace arcirk{
         Q_PROPERTY(QString httpService READ httpService WRITE setHttpService NOTIFY httpServiceChanged)
         Q_PROPERTY(QString httpPwd READ httpPwd WRITE setHttpPwd NOTIFY httpPwdChanged)
         Q_PROPERTY(QString httpUser READ httpPwd WRITE setHttpUser NOTIFY httpUserChanged)
-        Q_PROPERTY(bool isQrImage READ isQrImage WRITE setIsQrImage NOTIFY isQrImageChanged)
+        Q_PROPERTY(bool showImage READ showImage WRITE setShowImage NOTIFY showImageChanged)
         Q_PROPERTY(bool keyboardInputMode READ keyboardInputMode WRITE setKeyboardInputMode NOTIFY keyboardInputModeChanged)
         Q_PROPERTY(bool priceCheckerMode READ priceCheckerMode WRITE setPriceCheckerMode NOTIFY priceCheckerModeChanged)
 
@@ -57,7 +57,7 @@ namespace arcirk{
         void setKeyboardInputMode(bool value); //Используется клавиатурный ввод (прайс-чекер, или подключенный сканер)
         void setPriceCheckerMode(bool value);
 
-        void setIsQrImage(bool value);
+        void setShowImage(bool value);
 
         QString userName() const;
         QString hash() const;
@@ -73,6 +73,8 @@ namespace arcirk{
         QString getHttpPassword()  const;
         QString getHttpUser() const;
 
+        bool isShowImage();
+
     private:
         QString m_host;
         int m_port;
@@ -82,7 +84,7 @@ namespace arcirk{
         QString m_product;
         QString m_httpService;
         QString m_httpPwd;
-        bool m_isQrImage;
+        bool m_showImage;
         bool m_keyboardInputMode;
         bool m_priceCheckerMode;
 
@@ -100,7 +102,7 @@ namespace arcirk{
 
         bool keyboardInputMode();
         bool priceCheckerMode();
-        bool isQrImage();
+        bool showImage();
         int port();
 
         void read_conf();
@@ -119,7 +121,7 @@ namespace arcirk{
         void productChanged();
         void httpServiceChanged();
         void httpPwdChanged();
-        void isQrImageChanged();
+        void showImageChanged();
         void keyboardInputModeChanged();
         void priceCheckerModeChanged();
         void httpUserChanged();

@@ -14,17 +14,48 @@ Page {
     property alias warehouse: stock.text
     property alias price: priceText.text
 
-    function senBarcode(bInfo){
+    property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 12
+
+    function setBarcode(bInfo){
         txtBarcode.text = bInfo.barcode;
         txtName.text = bInfo.synonym;
-        txtPrice.text = bInfo.price;
-        txtStockBalance.text = bInfo.balance;
+        txtPrice.text = bInfo.price + " " + bInfo.currency;
+        txtStockBalance.text = bInfo.balance + " " + bInfo.unit;
+        if(!bInfo.isLongImgLoad){
+            if(wsSettings.showImage){
+                imageData.source = bInfo.imageSource;
+                longOperation.visible = false
+            }else
+                imageData.visible = false
+        }else{
+            imageData.visible = false
+            longOperation.visible = true
+        }
+
+        pane.visible = true;
     }
 
-Material.background: "white"
+    function changeImageSource(bInfo){
+        longOperation.visible = false
+        imageData.source = bInfo.imageSource;
+        imageData.visible = true
+    }
+
+    function setPaneVisible(value){
+        pane.visible = value;
+    }
+
+//    function setImageFromByteArray(img){
+//        imageData.data = img
+//        imageData.visible = true
+//    }
+
+    Material.background: "white"
 
     GridLayout{
         id: grid
+        anchors.top: parent.top
+        z: 1
         columns: 2
 
            Text{
@@ -32,50 +63,58 @@ Material.background: "white"
                topPadding: 10
                color: "gray"
                text: "Организация:"
+               font.pixelSize: fontPixelSizeGrey
            }
            Text{
                id: org
                topPadding: 10
                color: "gray"
+               font.pixelSize: fontPixelSizeGrey
            }
 
            Text{
                leftPadding: 10
                text: "Подразделение:"
                color: "gray"
+               font.pixelSize: fontPixelSizeGrey
            }
            Text{
                id: suborg
                color: "gray"
-
+                font.pixelSize: fontPixelSizeGrey
            }
            Text{
                leftPadding: 10
                text: "Склад:"
                color: "gray"
+               font.pixelSize: fontPixelSizeGrey
            }
            Text{
                color: "gray"
                id: stock
+               font.pixelSize: fontPixelSizeGrey
            }
            Text{
                leftPadding: 10
                text: "Тип цен:"
                color: "gray"
+               font.pixelSize: fontPixelSizeGrey
            }
            Text{
                color: "gray"
                id: priceText
+               font.pixelSize: fontPixelSizeGrey
            }
     }
 
     Pane{
         id: pane
-        anchors.top: grid.bottom
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-
+//        anchors.top: parent.top
+//        anchors.left: parent.left
+//        anchors.bottom: parent.bottom
+//        anchors.right: parent.right
+        anchors.fill: parent
+        visible: false
 //        Rectangle {
 //            width: pane.width - pageConnanctions.padding * 2
 //            height: pane.height - pageConnanctions.padding * 2
@@ -86,157 +125,126 @@ Material.background: "white"
             columns: 5
             rows: 5
             id: column
-            //spacing: 10
             width: pane.width - pageConnanctions.padding * 2
-            //height: pane.height - pageConnanctions.padding * 2
-//            Layout.fillWidth: true
-               // Row{
 
+            RowLayout{
+                Layout.columnSpan: 5
+                Layout.rowSpan: 1
+                Layout.row: 1
+                Layout.column: 1
+                Layout.alignment: Qt.AlignCenter
+                Layout.maximumHeight: 400
+                Layout.minimumHeight: 400
+                //width: 300
+                //padding: 5
+                Image {
+                    id: imageData
+                    //height: 300
+                    //verticalAlignment: Qt.AlignVCenter
+//                    Layout.columnSpan: 5
+//                    Layout.rowSpan: 1
+//                    Layout.row: 1
+//                    Layout.column: 1
+//                    Layout.alignment: Qt.AlignCenter
+                    //source: "qrc:/img/exampleQr.png"
+                    Layout.maximumHeight: 400
+//                    Layout.minimumHeight: 300
+                    //Layout.alignment: Qt.AlignCenter
+                    fillMode:Image.PreserveAspectFit; clip:true
+                    visible: wsSettings.showImage
+                }
 
-                    //Layout.row: 0
-                    //Layout.column: 3
-                    //Layout.columnSpan: 5
-                    //id: rowImage
-                    //Layout.fillWidth: true
-                    //anchors.horizontalCenter: parent.horizontalCenter
-
-                        Image {
-                            //Layout.fillHeight: true
-                            //Layout.fillWidth: true
-                            Layout.columnSpan: 5
-                            Layout.rowSpan: 1
-                            Layout.row: 1
-                            Layout.column: 1
-                            id: imgBarcode
-                            Layout.alignment: Qt.AlignCenter
-                            source: "qrc:/img/exampleQr.png"
-
-                            //visible: false
-                        }
-
-
-
-
-               // }
-//                Row{
-//                    Layout.fillWidth: true
-//                    id: rowBarcode
-//                    //anchors.top: rowImage.bottom
-//                    anchors.horizontalCenter: parent.horizontalCenter
-//                    //width: column.width / 2
-
-                    Text {
-                                            //Layout.fillHeight: true
-                                            Layout.fillWidth: true
-                                            Layout.columnSpan: 3
-                                            Layout.rowSpan: 1
-                                            Layout.row: 2
-                                            Layout.column: 2
-                        id: txtBarcode
-                        padding: 4
-                        font.pixelSize: 24
-                        //width: thisPage.width - thisPage.padding * 2
-                        width: column.width / 2
-                        fontSizeMode: Text.Fit
-                        minimumPixelSize: 8 // minimum height of the font
-                        font.bold: true
-                        //color: "blue"
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        text: "23023457483927"
-                    }
-//                Row{
-//                    id: rowName
-//                    anchors.top: rowBarcode.bottom
-//                    anchors.horizontalCenter: parent.horizontalCenter
-//                    width: column.width / 2
-                    Text {
-                        //Layout.fillHeight: true
-                        Layout.fillWidth: true
-                        Layout.columnSpan: 3
-                        Layout.rowSpan: 1
-                        Layout.row: 3
-                        Layout.column: 2
-                        id: txtName
-                        textFormat: Text.RichText
-                        wrapMode: Text.WordWrap
-                        width: column.width / 2
-                        //width: thisPage.width - thisPage.padding * 2
-                        horizontalAlignment: Qt.AlignHCenter
-                        font.pixelSize: 32
-                        color: "#536AC2"//pageConnanctions.theme !== "Dark" ? "black" : "white"
-                        text: "ж/комплект/Лика дресс/ 5653/92/Good Night A"
-
-                    }
-//                }
-
-                GridLayout{
-//                    Layout.fillHeight: true
-                    //Layout.fillWidth: true
-                    Layout.columnSpan: 1
-                    Layout.rowSpan: 1
-                    Layout.row: 4
-                    Layout.column: 3
+                AnimatedImage{
+                    id: longOperation
+                    source: "qrc:/img/longOperation.gif"
+//                    Layout.columnSpan: 5
+//                    Layout.rowSpan: 1
+//                    Layout.row: 1
+//                    Layout.column: 1
+//                    Layout.maximumHeight: 300
+//                    Layout.minimumHeight: 300
                     Layout.alignment: Qt.AlignCenter
-                    columns: 2
-//                    anchors.top: rowName.bottom
-//                    width: column.width / 2
-                    Text {
-//                        Layout.fillHeight: true
-//                        Layout.fillWidth: true
-//                        Layout.columnSpan: 1
-//                        Layout.rowSpan: 1
-//                        Layout.row: 4
-//                        Layout.column: 2
-                        text: "Цена:"
-                        horizontalAlignment: Qt.AlignHCenter
-                    }
-                    Text {
-//                        Layout.fillHeight: true
-//                        Layout.fillWidth: true
-//                        Layout.columnSpan: 2
-//                        Layout.rowSpan: 1
-//                        Layout.row: 4
-//                        Layout.column: 3
-                        id: txtPrice
-                        textFormat: Text.RichText
-                        //width: pageConnanctions.width - pageConnanctions.padding * 2
-                        horizontalAlignment: Qt.AlignHCenter
-                        font.pixelSize: 22
-                        //color: pageConnanctions.theme !== "Dark" ? "black" : "white"
-                        text: "100 руб"
-                    }
-                    Text {
-//                        Layout.columnSpan: 1
-//                        Layout.rowSpan: 2
-//                        Layout.row: 5
-//                        Layout.column: 2
-                        text: "Количество:"
-                        //verticalAlignment: Qt.AlignRight
+                    visible: false
+                }
 
-                    }
-                    Text {
-//                        Layout.columnSpan: 2
-//                        Layout.rowSpan: 2
-//                        Layout.row: 5
-//                        Layout.column: 3
-                        id: txtStockBalance
-                        textFormat: Text.RichText
-                        //width: pageConnanctions.width - pageConnanctions.padding * 2
-                        horizontalAlignment: Qt.AlignHCenter
-                        font.pixelSize: 22
-                        //color: pageConnanctions.theme !== "Dark" ? "black" : "white"
-                        text: "10 шт"
-                    }
+            }
 
 
-//                }
+            Text {
+
+                Layout.fillWidth: true
+                Layout.columnSpan: 3
+                Layout.rowSpan: 1
+                Layout.row: 2
+                Layout.column: 2
+                id: txtBarcode
+                padding: 4
+                font.pixelSize: 28
+                //width: thisPage.width - thisPage.padding * 2
+                width: column.width / 2
+                fontSizeMode: Text.Fit
+                minimumPixelSize: 8 // minimum height of the font
+                font.bold: true
+                //color: "blue"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                text: ""
+            }
+            Text {
+                //Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.columnSpan: 3
+                Layout.rowSpan: 1
+                Layout.row: 3
+                Layout.column: 2
+                id: txtName
+                textFormat: Text.RichText
+                wrapMode: Text.WordWrap
+                width: column.width / 2
+                //width: thisPage.width - thisPage.padding * 2
+                horizontalAlignment: Qt.AlignHCenter
+                font.pixelSize: 38
+                color: "#536AC2"//pageConnanctions.theme !== "Dark" ? "black" : "white"
+                text: ""
+
+            }
+
+
+            GridLayout{
+                Layout.columnSpan: 1
+                Layout.rowSpan: 1
+                Layout.row: 4
+                Layout.column: 3
+                Layout.alignment: Qt.AlignCenter
+                columns: 2
+
+                Text {
+                    text: "Цена:"
+                    horizontalAlignment: Qt.AlignHCenter
+                    font.pixelSize: 28
+                }
+                Text {
+                    id: txtPrice
+                    textFormat: Text.RichText
+                    horizontalAlignment: Qt.AlignHCenter
+                    font.pixelSize: 28
+                    font.bold: true
+                }
+                Text {
+                    text: "Остаток:"
+                    font.pixelSize: 28
+                }
+                Text {
+                    id: txtStockBalance
+                    textFormat: Text.RichText
+                    horizontalAlignment: Qt.AlignHCenter
+                    font.pixelSize: 28
+                    font.bold: true
+                }
+
             }
         }
 
     }
-
-
-
 
 }

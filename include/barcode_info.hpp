@@ -3,15 +3,20 @@
 
 #include <QObject>
 #include "shared_struct.hpp"
+#include <QImage>
 
 BOOST_FUSION_DEFINE_STRUCT(
         (arcirk::client), barcode_info,
         (std::string, barcode)
+        (std::string, barcode_qr)
         (std::string, synonym)
         (int, balance)
         (double, price)
         (std::string, image_base64)
         (bool, is_qr)
+        (std::string, uuid)
+        (std::string, unit)
+        (std::string, currency)
 );
 
 class BarcodeInfo : public QObject
@@ -23,11 +28,23 @@ class BarcodeInfo : public QObject
     Q_PROPERTY(double price READ price NOTIFY priceChanged)
     Q_PROPERTY(QString image_base64 READ image_base64 NOTIFY image_base64Changed)
     Q_PROPERTY(bool is_qr READ is_qr NOTIFY is_qrChanged)
-
+    Q_PROPERTY(QString imageSource READ imageSource NOTIFY imageSourceChanged)
+    Q_PROPERTY(bool isLongImgLoad READ isLongImgLoad NOTIFY isLongImgLoadChanged)
+    Q_PROPERTY(QString unit READ unit NOTIFY unitChanged)
+    Q_PROPERTY(QString currency READ currency NOTIFY currencyChanged)
 public:
     explicit BarcodeInfo(QObject *parent = nullptr);
 
     void set_barcode_info_object(const std::string& source);
+    void set_image_from_base64(const std::string& response);
+
+    std::string uuid(){
+        return barcode_inf.uuid;
+    }
+
+    void set_image(const QByteArray& ba);
+
+    void clear(const std::string& def = "");
 
 private:
     arcirk::client::barcode_info barcode_inf;
@@ -37,6 +54,15 @@ private:
     double price() const;
     QString image_base64() const;
     bool is_qr() const;
+    QString m_imageSource;
+    QString imageSource();
+
+    bool isLongImgLoad(){return true;};
+
+    QString currency(){return QString::fromStdString(barcode_inf.currency);};
+    QString unit(){return QString::fromStdString(barcode_inf.unit);};
+
+
 
 signals:
     void barcodeInfoChanged();
@@ -46,6 +72,11 @@ signals:
     void priceChanged();
     void image_base64Changed();
     void is_qrChanged();
+    void imageSourceChanged();
+    void isLongImgLoadChanged();
+    void unitChanged();
+    void currencyChanged();
+    void clearData();
 };
 
 
