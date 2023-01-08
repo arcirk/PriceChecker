@@ -262,4 +262,27 @@ ApplicationWindow {
         }
     }
 
+    Connections {
+        target: qtAndroidService
+        function onMessageFromService(message) {
+
+//            var item = stackView.find(function(item) {
+//                return item.objectName === "pageScanner";
+//            })
+//            if(item === null){
+//                stackView.push(pageScanner);
+//            }else{
+//                if(stackView.currentItem !== item)
+//                     stackView.push(pageScanner);
+//            }
+
+//            pageScanner.setBarcode(message)
+            if(wsClient.isStarted()){
+                //wsClient.sendBarcode(message, pageScanner.document_id)
+                wsClient.get_barcode_information(message, wsBarcodeInfo)
+            }
+
+            console.log("barcode: " + message)
+        }
+    }
 }

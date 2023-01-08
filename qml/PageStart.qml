@@ -14,7 +14,8 @@ Page {
     property alias warehouse: stock.text
     property alias price: priceText.text
 
-    property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 12
+    property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 8
+    property int imageMaximumHeight: screenWidth > 1000 ? 400 : 250
 
     function setBarcode(bInfo){
         txtBarcode.text = bInfo.barcode;
@@ -133,8 +134,8 @@ Page {
                 Layout.row: 1
                 Layout.column: 1
                 Layout.alignment: Qt.AlignCenter
-                Layout.maximumHeight: 400
-                Layout.minimumHeight: 400
+                Layout.maximumHeight: imageMaximumHeight
+                Layout.minimumHeight: imageMaximumHeight
                 //width: 300
                 //padding: 5
                 Image {
@@ -147,7 +148,8 @@ Page {
 //                    Layout.column: 1
 //                    Layout.alignment: Qt.AlignCenter
                     //source: "qrc:/img/exampleQr.png"
-                    Layout.maximumHeight: 400
+                    Layout.maximumHeight: imageMaximumHeight
+                    Layout.maximumWidth: pane.width - pageConnanctions.padding * 2
 //                    Layout.minimumHeight: 300
                     //Layout.alignment: Qt.AlignCenter
                     fillMode:Image.PreserveAspectFit; clip:true
@@ -173,13 +175,13 @@ Page {
             Text {
 
                 Layout.fillWidth: true
-                Layout.columnSpan: 3
+                Layout.columnSpan: screenWidth > 1000 ? 3 : 5
                 Layout.rowSpan: 1
                 Layout.row: 2
-                Layout.column: 2
+                Layout.column: screenWidth > 1000 ? 2 : 1
                 id: txtBarcode
                 padding: 4
-                font.pixelSize: 28
+                font.pixelSize: fontPixelSizeGrey + 8
                 //width: thisPage.width - thisPage.padding * 2
                 width: column.width / 2
                 fontSizeMode: Text.Fit
@@ -193,19 +195,20 @@ Page {
             Text {
                 //Layout.fillHeight: true
                 Layout.fillWidth: true
-                Layout.columnSpan: 3
+                Layout.columnSpan: screenWidth > 1000 ? 3 : 5
                 Layout.rowSpan: 1
                 Layout.row: 3
-                Layout.column: 2
+                Layout.column: screenWidth > 1000 ? 2 : 1
                 id: txtName
                 textFormat: Text.RichText
                 wrapMode: Text.WordWrap
                 width: column.width / 2
                 //width: thisPage.width - thisPage.padding * 2
                 horizontalAlignment: Qt.AlignHCenter
-                font.pixelSize: 38
+                font.pixelSize: fontPixelSizeGrey + 18
                 color: "#536AC2"//pageConnanctions.theme !== "Dark" ? "black" : "white"
                 text: ""
+                Layout.maximumWidth: pane.width - pageConnanctions.padding * 2
 
             }
 
@@ -221,24 +224,24 @@ Page {
                 Text {
                     text: "Цена:"
                     horizontalAlignment: Qt.AlignHCenter
-                    font.pixelSize: 28
+                    font.pixelSize: fontPixelSizeGrey + 8
                 }
                 Text {
                     id: txtPrice
                     textFormat: Text.RichText
                     horizontalAlignment: Qt.AlignHCenter
-                    font.pixelSize: 28
+                    font.pixelSize: fontPixelSizeGrey + 8
                     font.bold: true
                 }
                 Text {
                     text: "Остаток:"
-                    font.pixelSize: 28
+                    font.pixelSize: fontPixelSizeGrey + 8
                 }
                 Text {
                     id: txtStockBalance
                     textFormat: Text.RichText
                     horizontalAlignment: Qt.AlignHCenter
-                    font.pixelSize: 28
+                    font.pixelSize: fontPixelSizeGrey + 8
                     font.bold: true
                 }
 

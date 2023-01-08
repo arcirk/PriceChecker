@@ -1,6 +1,7 @@
 QT += quick
 QT += websockets network sql
 QT += quickcontrols2
+QT += core-private
 
 SOURCES += \
         main.cpp \
@@ -11,6 +12,7 @@ SOURCES += \
     src/barcode_info.cpp \
     src/barcode_parser.cpp \
     src/httpservice.cpp \
+    src/qtandroidservice.cpp \
     src/websockets.cpp \
         src/wsSettings.cpp
 
@@ -36,6 +38,7 @@ HEADERS += \
     include/barcode_parser.hpp \
     include/httpservice.hpp \
     include/includes.hpp \
+    include/qtandroidservice.h \
     include/shared_struct.hpp \
     include/websockets.hpp \
     include/wsSettings.hpp
@@ -43,3 +46,23 @@ HEADERS += \
 INCLUDEPATH += $(BOOST_INCLDUE) #C:/lib/vcpkg/vcpkg/installed/x64-windows/include
 
 #LIBS += -L$(BOOST_LIB) #-LC:/lib/vcpkg/vcpkg/installed/x64-windows/lib
+
+DISTFILES += \
+    android/AndroidManifest.xml \
+    android/build.gradle \
+    android/gradle.properties \
+    android/gradle/wrapper/gradle-wrapper.jar \
+    android/gradle/wrapper/gradle-wrapper.properties \
+    android/gradlew \
+    android/gradlew.bat \
+    android/res/values/libs.xml\
+    android/src/ru/arcirk/lscanner/qtandroidservice/ActivityUtils.java \
+    android/src/ru/arcirk/lscanner/qtandroidservice/QtAndroidService.java
+
+#contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
+#    ANDROID_PACKAGE_SOURCE_DIR = \
+#        $$PWD/android
+#}
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+

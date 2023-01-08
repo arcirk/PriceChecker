@@ -7,6 +7,7 @@
 #include "include/barcode_parser.hpp"
 #include "include/barcode_info.hpp"
 #include <QScreen>
+#include "include/qtandroidservice.h"
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<BarcodeInfo>("BarcodeInfo", 1, 0, "BarcodeInfo");
 
     QQmlApplicationEngine engine;
-    //const QUrl url(u"qrc:/PraceChecker/main.qml"_qs);
+    QtAndroidService *qtAndroidService = new QtAndroidService(&app);
 
     QScreen *screen = app.primaryScreen();
     int width = screen->size().width();
@@ -29,6 +30,7 @@ int main(int argc, char *argv[])
     QQmlContext* context = engine.rootContext();
     context->setContextProperty("screenWidth", width);
     context->setContextProperty("screenHeight", height);
+    context->setContextProperty(QLatin1String("qtAndroidService"), qtAndroidService);
 
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
