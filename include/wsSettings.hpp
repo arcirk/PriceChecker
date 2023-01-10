@@ -33,7 +33,7 @@ namespace arcirk{
         Q_PROPERTY(bool showImage READ showImage WRITE setShowImage NOTIFY showImageChanged)
         Q_PROPERTY(bool keyboardInputMode READ keyboardInputMode WRITE setKeyboardInputMode NOTIFY keyboardInputModeChanged)
         Q_PROPERTY(bool priceCheckerMode READ priceCheckerMode WRITE setPriceCheckerMode NOTIFY priceCheckerModeChanged)
-
+        Q_PROPERTY(bool autoConnect READ autoConnect WRITE setAutoConnect NOTIFY autoConnectChanged)
     public:
         explicit
         Settings(QObject *parent = nullptr);
@@ -58,11 +58,14 @@ namespace arcirk{
         void setPriceCheckerMode(bool value);
 
         void setShowImage(bool value);
+        void setAutoConnect(bool value);
 
         QString userName() const;
         QString hash() const;
         QString deviceId() const;
         QString product() const;
+        bool autoConnect() const;
+
 
         void update_workplace_data(const nlohmann::json& object);
         void update_workplace_view(const nlohmann::json& object);
@@ -125,6 +128,7 @@ namespace arcirk{
         void keyboardInputModeChanged();
         void priceCheckerModeChanged();
         void httpUserChanged();
+        void autoConnectChanged();
         void updateWorkplaceView(const QString& org, const QString& suborg, const QString& stock, const QString& price);
     };
 

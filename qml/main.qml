@@ -26,22 +26,36 @@ ApplicationWindow {
         }
     }
 
+    function openPageScanner(){
+        var item = stackView.find(function(item) {
+            return item.objectName === "pageScanner";
+        })
+        if(item === null){
+            stackView.push(pageScanner);
+        }else{
+            if(stackView.currentItem !== item)
+                 stackView.push(pageScanner);
+        }
+    }
+
     property BarcodeInfo wsBarcodeInfo: BarcodeInfo {
         id: barcodeInfo;
 
         onBarcodeInfoChanged: {
-            pageStart.setBarcode(wsBarcodeInfo);
+            if(wsSettings.priceCheckerMode)
+                openPageScanner();
+            pageScanner.setBarcode(wsBarcodeInfo);
             if(wsBarcodeInfo.isLongImgLoad)
                 wsClient.get_image_data(wsBarcodeInfo);
         }
 
         onImageSourceChanged: {
             //console.log("onImageSourceChanged");
-            pageStart.changeImageSource(wsBarcodeInfo);
+            pageScanner.changeImageSource(wsBarcodeInfo);
         }
 
         onClearData: {
-            pageStart.setBarcode(wsBarcodeInfo);
+            pageScanner.setBarcode(wsBarcodeInfo);
         }
     }
 
@@ -124,6 +138,10 @@ ApplicationWindow {
 
             if(optionsDlg.visible)
                 optionsDlg.connectionState(state);
+
+            if(!state)
+                wsClient.startReconnect();
+
         }
 
         onUpdateHsConfiguration: function(hsHost, hsUser, hsPwd){
@@ -265,18 +283,8 @@ ApplicationWindow {
     Connections {
         target: qtAndroidService
         function onMessageFromService(message) {
-
-//            var item = stackView.find(function(item) {
-//                return item.objectName === "pageScanner";
-//            })
-//            if(item === null){
-//                stackView.push(pageScanner);
-//            }else{
-//                if(stackView.currentItem !== item)
-//                     stackView.push(pageScanner);
-//            }
-
-//            pageScanner.setBarcode(message)
+            if(wsSettings.priceCheckerMode)
+                openPageScanner();
             if(wsClient.isStarted()){
                 //wsClient.sendBarcode(message, pageScanner.document_id)
                 wsClient.get_barcode_information(message, wsBarcodeInfo)

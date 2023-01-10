@@ -1,6 +1,7 @@
 #ifndef QTANDROIDSERVICE_H
 #define QTANDROIDSERVICE_H
 
+#ifdef Q_OS_ANDROID
 #include <QtCore/private/qandroidextras_p.h>
 #include <QObject>
 
@@ -29,4 +30,5 @@ private:
 
 
 };
+#endif
 #endif // QTANDROIDSERVICE_H

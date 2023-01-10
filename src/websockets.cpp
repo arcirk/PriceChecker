@@ -47,6 +47,9 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
 
     connect(m_client, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
         [=](QAbstractSocket::SocketError error){ onError(error); });
+
+    m_reconnect = new QTimer(this);
+    connect(m_reconnect,SIGNAL(timeout()),this,SLOT(onReconnect()));
 }
 
 WebSocketClient::WebSocketClient(QObject *parent)
@@ -61,6 +64,9 @@ WebSocketClient::WebSocketClient(QObject *parent)
 
     connect(m_client, QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error),
             [=](QAbstractSocket::SocketError error){ onError(error); });
+
+    m_reconnect = new QTimer(this);
+    connect(m_reconnect,SIGNAL(timeout()),this,SLOT(onReconnect()));
 }
 
 WebSocketClient::~WebSocketClient()
@@ -95,6 +101,11 @@ void WebSocketClient::close()
 {
     if(m_client)
         m_client->close();
+}
+
+void WebSocketClient::reconnect()
+{
+    open(wsSettings);
 }
 
 //QString WebSocketClient::typePriceRef() const
@@ -176,6 +187,7 @@ void WebSocketClient::onDisconnected()
 {
     qDebug() << __FUNCTION__;
     emit connectionChanged(false);
+
 }
 
 void WebSocketClient::onTextMessageReceived(const QString &message)
@@ -193,6 +205,18 @@ void WebSocketClient::onTextMessageReceived(const QString &message)
 void WebSocketClient::onError(QAbstractSocket::SocketError error)
 {
     qDebug() << __FUNCTION__;
+}
+
+void WebSocketClient::onReconnect()
+{
+    qDebug() << __FUNCTION__;
+    if(isStarted()){
+        if(m_reconnect->isActive())
+            m_reconnect->stop();
+    }else{
+        m_async_await.append(std::bind(&WebSocketClient::reconnect, this));
+        asyncAwait();
+    }
 }
 
 QString WebSocketClient::generateHash(const QString &usr, const QString &pwd)
@@ -650,4 +674,10 @@ void WebSocketClient::get_image_data(BarcodeInfo *bInfo)
     bInfo->set_image(httpData);
 
 
+}
+
+void WebSocketClient::checkConnection()
+{
+    if(!m_reconnect->isActive())
+        startReconnect();
 }

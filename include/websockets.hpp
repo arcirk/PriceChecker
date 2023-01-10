@@ -8,6 +8,7 @@
 #include "shared_struct.hpp"
 #include <QQueue>
 #include "barcode_info.hpp"
+#include <QTimer>
 
 typedef std::function<void()> async_await;
 
@@ -30,6 +31,8 @@ public:
 
     Q_INVOKABLE void open(arcirk::Settings * sett);
     Q_INVOKABLE void close();
+
+    void reconnect();
 
 //    QString typePriceRef() const;
 //    QString stockRef() const;
@@ -58,6 +61,15 @@ public:
 
     Q_INVOKABLE void get_image_data(BarcodeInfo* bInfo);
 
+    Q_INVOKABLE void checkConnection();
+
+    Q_INVOKABLE void startReconnect(){
+        if(!wsSettings)
+            return;
+        if (wsSettings->autoConnect())
+            m_reconnect->start(1000 * 60);
+    };
+
 private:
     QWebSocket* m_client;
     arcirk::Settings * wsSettings;
@@ -68,6 +80,8 @@ private:
 
     QUrl m_url;
     bool m_started;
+
+    QTimer * m_reconnect;
 
     QQueue<async_await> m_async_await;
 
@@ -100,6 +114,7 @@ private slots:
     void onDisconnected();
     void onTextMessageReceived(const QString &message);
     void onError(QAbstractSocket::SocketError error);
+    void onReconnect();
 
 signals:
 //    void typePriceRefChanged();

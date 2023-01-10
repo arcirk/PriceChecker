@@ -18,5 +18,7 @@
         <file>qml/EnterBarcodeDialog.qml</file>
         <file>img/longOperation.gif</file>
         <file>img/to_data.png</file>
+        <file>qml/DelegateView.qml</file>
+        <file>qml/RoundPane.qml</file>
     </qresource>
 </RCC>

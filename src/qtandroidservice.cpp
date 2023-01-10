@@ -1,4 +1,4 @@
-
+#ifdef Q_OS_ANDROID
 #include "include/qtandroidservice.h"
 
 #include <QJniEnvironment>
@@ -89,3 +89,4 @@ QString QtAndroidService::androidId()
     return QUuid::createUuid().toString();
 }
 
+#endif

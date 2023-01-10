@@ -295,6 +295,11 @@ namespace arcirk{
         return m_product;
     }
 
+    bool Settings::autoConnect() const
+    {
+        return conf.AutoConnect;
+    }
+
     void Settings::update_workplace_data(const nlohmann::json &object)
     {
         try {
@@ -394,6 +399,11 @@ namespace arcirk{
     void Settings::setShowImage(bool value)
     {
         client_conf.showImage = value;
+    }
+
+    void Settings::setAutoConnect(bool value)
+    {
+        conf.AutoConnect = value;
     }
 
     bool Settings::showImage()

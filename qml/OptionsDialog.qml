@@ -300,7 +300,30 @@ Popup {
                 wsSettings.save()
             }
 
-            enabled: false //в этом проекте всегда ложь
+            //enabled: false //в этом проекте всегда ложь
+        }
+        Label{
+            text: ""
+        }
+        CheckBox{
+            id: isAutoConnect
+            checked: wsSettings.autoConnect;
+            text: "Авто подключение при разрыве соединения"
+            font.pixelSize: fontPixelSize
+            Layout.fillWidth: true
+            Material.accent: Material.Blue
+            contentItem: Label {
+                text: isAutoConnect.text
+                font: isAutoConnect.font
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignVCenter
+                leftPadding: isAutoConnect.indicator.width + isAutoConnect.spacing
+                wrapMode: Label.Wrap
+            }
+            onCheckedChanged: {
+                wsSettings.autoConnect = isAutoConnect.checked
+                wsSettings.save()
+            }
         }
         Label{
             text: ""

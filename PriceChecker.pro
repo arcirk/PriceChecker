@@ -12,6 +12,8 @@ SOURCES += \
     src/barcode_info.cpp \
     src/barcode_parser.cpp \
     src/httpservice.cpp \
+    src/qjsontablemodel.cpp \
+    src/qproxymodel.cpp \
     src/qtandroidservice.cpp \
     src/websockets.cpp \
         src/wsSettings.cpp
@@ -36,8 +38,11 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     include/barcode_info.hpp \
     include/barcode_parser.hpp \
+    include/database_struct.hpp \
     include/httpservice.hpp \
     include/includes.hpp \
+    include/qjsontablemodel.h \
+    include/qproxymodel.h \
     include/qtandroidservice.h \
     include/shared_struct.hpp \
     include/websockets.hpp \
