@@ -20,5 +20,8 @@
         <file>img/to_data.png</file>
         <file>qml/DelegateView.qml</file>
         <file>qml/RoundPane.qml</file>
+        <file>img/arrow-left.svg</file>
+        <file>img/file-document-multiple.svg</file>
+        <file>qml/PageDocuments.qml</file>
     </qresource>
 </RCC>

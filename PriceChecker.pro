@@ -44,6 +44,7 @@ HEADERS += \
     include/qjsontablemodel.h \
     include/qproxymodel.h \
     include/qtandroidservice.h \
+    include/query_builder.hpp \
     include/shared_struct.hpp \
     include/websockets.hpp \
     include/wsSettings.hpp
@@ -64,10 +65,11 @@ DISTFILES += \
     android/src/ru/arcirk/lscanner/qtandroidservice/ActivityUtils.java \
     android/src/ru/arcirk/lscanner/qtandroidservice/QtAndroidService.java
 
-#contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
+contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
 #    ANDROID_PACKAGE_SOURCE_DIR = \
 #        $$PWD/android
-#}
+    DEFINES += IS_OS_ANDROID
+}
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 

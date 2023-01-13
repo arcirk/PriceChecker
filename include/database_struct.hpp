@@ -10,6 +10,7 @@ BOOST_FUSION_DEFINE_STRUCT(
     (std::string, second)
     (std::string, ref)
     (int, date)
+    (std::string, device_id)
     );
 
 BOOST_FUSION_DEFINE_STRUCT(
@@ -20,7 +21,8 @@ BOOST_FUSION_DEFINE_STRUCT(
     (std::string, ref)
     (std::string, parent)
     (std::string, barcode)
-    (int, item_count)
-    );
+    (double, quantity)
+    (double, price)
+);
 
 #endif // DATABASE_STRUCT_HPP

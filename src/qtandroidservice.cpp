@@ -1,4 +1,4 @@
-#ifdef Q_OS_ANDROID
+#ifdef IS_OS_ANDROID
 #include "include/qtandroidservice.h"
 
 #include <QJniEnvironment>

@@ -19,6 +19,17 @@ ApplicationWindow {
     property string myTheme: "Dark"
     Material.theme: myTheme === "Light" ? Material.Light : Material.Dark
 
+    function updateToolbarButton(){
+        btnArrowleft.visible = false
+        if(!wsSettings.priceCheckerMode){
+            //btnScan.enabled = stackView.currentItem.objectName === "pageScanner";
+            btnArrowleft.visible = stackView.currentItem.objectName === "pageScanner"
+        }else{
+            btnScan.enabled = true;
+            btnDocuments.visible = false;
+        }
+    }
+
     property BarcodeParser wsBarcodeParser: BarcodeParser{
         onBarcode: function(value){
             //console.log(value)
@@ -36,13 +47,14 @@ ApplicationWindow {
             if(stackView.currentItem !== item)
                  stackView.push(pageScanner);
         }
+        updateToolbarButton();
     }
 
     property BarcodeInfo wsBarcodeInfo: BarcodeInfo {
         id: barcodeInfo;
 
         onBarcodeInfoChanged: {
-            if(wsSettings.priceCheckerMode)
+            //if(wsSettings.priceCheckerMode)
                 openPageScanner();
             pageScanner.setBarcode(wsBarcodeInfo);
             if(wsBarcodeInfo.isLongImgLoad)
@@ -166,6 +178,14 @@ ApplicationWindow {
 
         RowLayout{
             ToolButton{
+                id: btnArrowleft
+                icon.source: "qrc:/img/arrow-left.svg"
+                onClicked: {
+                    stackView.pop();
+                    updateToolbarButton();
+                }
+            }
+            ToolButton{
                 id: btnScan
                 icon.source: "qrc:/img/qr16.png"
                 onClicked: {
@@ -182,6 +202,23 @@ ApplicationWindow {
 //                        stackView.pop()
                     enterBarcodeDlg.br = ""
                     enterBarcodeDlg.visible = true
+                }
+            }
+            ToolButton{
+                id: btnDocuments
+                icon.source: "qrc:/img/file-document-multiple.svg"
+                onClicked: {
+                    if(stackView.currentItem != pageDocuments){
+                        var item = stackView.find(function(item) {
+                            return item.objectName === "pageDocuments";
+                        })
+                        if(item === null)
+                            stackView.push(pageDocuments);
+                        else{
+                            stackView.pop(item)
+                        }
+                    }else
+                        stackView.pop()
                 }
             }
             Label{
@@ -232,6 +269,7 @@ ApplicationWindow {
 //            wsSettings.save()
             wsClient.open(wsSettings);
         }
+        updateToolbarButton();
     }
 
     StackView{
@@ -258,8 +296,8 @@ ApplicationWindow {
 //                wsClient.currentRecipient = uuid
 //                wsClient.command_to_client(uuid, "get_list_forms", "{\"recipient\": \"" + wsClient.uuid() + "\"}", "")
 //            }
-        }
 
+        }
 
     }
 
@@ -268,6 +306,12 @@ ApplicationWindow {
         id: pageScanner
         visible: false
     }
+    PageDocuments{
+        objectName: "pageDocuments"
+        id: pageDocuments
+        visible: false
+    }
+
     Row{
         id: poupText
         anchors.top: stackView.bottom
