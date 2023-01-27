@@ -26,28 +26,36 @@ Page {
     Column{
         anchors.fill: parent
         spacing: 10
-        Row{
-            id: rowTitle
-            topPadding: 10
-            Layout.fillWidth: true
-            width: parent.width
-            spacing: 10
+//        Row{
+//            id: rowTitle
+//            topPadding: 10
+//            Layout.fillWidth: true
+//            width: parent.width
+//            spacing: 10
 
-            Text {
-                id: txtTitle
-                leftPadding: 10
-                color: "gray"
-                wrapMode: Text.WordWrap
-                width: parent.width
-            }
-            Rectangle{
-                width: pageDocs.width - txtTitle.implicitWidth - 20
-                height: 1
-                color: "gray"
-                anchors.bottom: txtTitle.bottom
-            }
+//            ToolBar {
+//                id: toolBar
+//                ToolButton {
+//                    id: btn
+//                    icon.source: "qrc:/img/qr16.png"
+//                }
+//            }
 
-        }
+//            Text {
+//                id: txtTitle
+//                leftPadding: 10
+//                color: "gray"
+//                wrapMode: Text.WordWrap
+//                width: parent.width
+//            }
+//            Rectangle{
+//                width: pageDocs.width - txtTitle.implicitWidth - 20
+//                height: 1
+//                color: "gray"
+//                anchors.bottom: txtTitle.bottom
+//            }
+
+//        }
 
         ListView {
             id: listView
@@ -71,7 +79,7 @@ Page {
                     spacing: 6
                     DelegateView{
                         id: messageText
-                        name: model.document_name + " / " + model.user_name
+                        name: model.second + "  " + model.number + " от " + wsClient.documentDate(model.date)
                         theme: pageDocs.theme
                         icon: "qrc:/img/1cv8.png"
                         iconSize: 24
@@ -114,4 +122,5 @@ Page {
             ScrollBar.vertical: ScrollBar {}
         }
     }
+
 }

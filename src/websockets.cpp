@@ -3,6 +3,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QEventLoop>
+#include <QDateTime>
 
 #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 void* _crypt(void* data, unsigned data_size, void* key, unsigned key_size)
@@ -386,6 +387,11 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
                         }
                     }
                 }
+            }else if(tb_name.get<arcirk::database::tables>() == arcirk::database::tables::tbDocuments){
+                if(query_type == "select"){
+                    QString table = QByteArray::fromBase64(resp.result.data());
+                    emit readDocuments(table);
+                }
             }
         }
 
@@ -514,8 +520,10 @@ void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInf
         return;
     }
 
-    if(wsSettings->workplace_options().warehouse.empty() || wsSettings->workplace_options().price.empty()){
-        qCritical() << "Не инициализированы настройки рабочего места!";
+    if(wsSettings->workplace_options().warehouse.empty() || wsSettings->workplace_options().price_type.empty()){
+        const QString err = "Не инициализированы настройки рабочего места!";
+        qCritical() << err;
+        emit displayError("WebSocketClient::get_barcode_information", err);
         return;
     }
 
@@ -573,7 +581,7 @@ void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInf
         {"barcode", barcode.toStdString()},
         {"command", "BarcodeInfo"},
         {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
-        {"price", wsSettings->workplace_options().price},
+        {"price", wsSettings->workplace_options().price_type},
         {"warehouse", wsSettings->workplace_options().warehouse},
         {"image_data", false} //wsSettings->isShowImage() тормозит
     };
@@ -680,4 +688,28 @@ void WebSocketClient::checkConnection()
 {
     if(!m_reconnect->isActive())
         startReconnect();
+}
+
+void WebSocketClient::getDocuments()
+{
+    nlohmann::json param = {
+        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+        {"query_type", "select"},
+        {"values", nlohmann::json{}},
+        {"where_values", nlohmann::json{{"device_id", wsSettings->deviceId().toStdString()}}}
+    };
+
+    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                     {"query_param", query_param}
+                 });
+}
+
+QString WebSocketClient::documentDate(const int value) const
+{
+    if(value > 0){
+        return QDateTime::fromSecsSinceEpoch(value).toString("dd.MM.yyyy hh:mm:ss");
+    }else{
+        return {};
+    }
 }

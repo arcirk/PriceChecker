@@ -163,6 +163,11 @@ ApplicationWindow {
         onNotify: function(message){
             popupMessage.show(message);
         }
+
+        onReadDocuments: function(jsonModel){
+            if(stackView.currentItem.objectName === "pageDocuments")
+                stackView.currentItem.setModelSource(jsonModel);
+        }
     }
 
     menuBar: ToolBar{
@@ -219,6 +224,28 @@ ApplicationWindow {
                         }
                     }else
                         stackView.pop()
+                    if(stackView.currentItem.objectName === "pageDocuments"){
+                        wsClient.getDocuments();
+                    }
+                }
+
+            }
+            ToolButton{
+                id: btnDocumentNew
+                icon.source: "qrc:/img/documetAdd.svg"
+                enabled: false
+                onClicked: {
+//                    if(stackView.currentItem != pageDocuments){
+//                        var item = stackView.find(function(item) {
+//                            return item.objectName === "pageDocuments";
+//                        })
+//                        if(item === null)
+//                            stackView.push(pageDocuments);
+//                        else{
+//                            stackView.pop(item)
+//                        }
+//                    }else
+//                        stackView.pop()
                 }
             }
             Label{
@@ -298,13 +325,15 @@ ApplicationWindow {
 //            }
 
         }
-
     }
 
     PageScanner{
         objectName: "pageScanner"
         id: pageScanner
         visible: false
+//        onStatusChanged: function(status){
+//            console.log("onStatusChanged " + stackView.currentItem.objectName)
+//        }
     }
     PageDocuments{
         objectName: "pageDocuments"

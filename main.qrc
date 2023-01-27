@@ -23,5 +23,10 @@
         <file>img/arrow-left.svg</file>
         <file>img/file-document-multiple.svg</file>
         <file>qml/PageDocuments.qml</file>
+        <file>img/documetAdd.svg</file>
+        <file>img/left_collapse.png</file>
+        <file>img/left_collapse.svg</file>
+        <file>img/left_collapse_lite.png</file>
+        <file>img/left_collapse_lite.svg</file>
     </qresource>
 </RCC>

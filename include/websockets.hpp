@@ -70,6 +70,9 @@ public:
             m_reconnect->start(1000 * 60);
     };
 
+    Q_INVOKABLE void getDocuments();
+    Q_INVOKABLE QString documentDate(const int value) const;
+
 private:
     QWebSocket* m_client;
     arcirk::Settings * wsSettings;
@@ -130,6 +133,8 @@ signals:
     void updateHsConfiguration(const QString& hsHost, const QString& hsUser, const QString& hsPwd);
 
     void notify(const QString &message);
+
+    void readDocuments(const QString& jsonModel);
 };
 
 #endif // WEBSOCKETS_HPP

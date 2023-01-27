@@ -60,27 +60,31 @@ namespace arcirk::server{
         GetMessages, //Список сообщений
         UpdateServerConfiguration, //Обновить конфигурацию сервера
         HttpServiceConfiguration, //Получить конфигурацию http сервиса 1С
-        InsertToDatabaseFromArray, //Добавить массив записей в базу
+        InsertToDatabaseFromArray, //Добавить массив записей в базу //устарела удалить
         SetNewDeviceId, //Явная установка идентификатора на устройствах где не возможно его получить
+        ObjectSetToDatabase, //Синхронизация объекта 1С с базой
+        ObjectGetFromDatabase, //Получить объект типа 1С из базы данных для десериализации
         CMD_INVALID=-1,
     };
 
     NLOHMANN_JSON_SERIALIZE_ENUM(server_commands, {
-        {CMD_INVALID, nullptr}    ,
-        {ServerVersion, "ServerVersion"}  ,
-        {ServerOnlineClientsList, "ServerOnlineClientsList"}    ,
-        {SetClientParam, "SetClientParam"}    ,
-        {ServerConfiguration, "ServerConfiguration"}    ,
-        {UserInfo, "UserInfo"}    ,
-        {InsertOrUpdateUser, "InsertOrUpdateUser"}    ,
-        {CommandToClient, "CommandToClient"}    ,
-        {ServerUsersList, "ServerUsersList"}    ,
-        {ExecuteSqlQuery, "ExecuteSqlQuery"}    ,
-        {GetMessages, "GetMessages"}    ,
-        {UpdateServerConfiguration, "UpdateServerConfiguration"}    ,
-        {HttpServiceConfiguration, "HttpServiceConfiguration"}    ,
-        {InsertToDatabaseFromArray, "InsertToDatabaseFromArray"}    ,
-        {SetNewDeviceId, "SetNewDeviceId"}    ,
+         {CMD_INVALID, nullptr}    ,
+         {ServerVersion, "ServerVersion"}  ,
+         {ServerOnlineClientsList, "ServerOnlineClientsList"}    ,
+         {SetClientParam, "SetClientParam"}    ,
+         {ServerConfiguration, "ServerConfiguration"}    ,
+         {UserInfo, "UserInfo"}    ,
+         {InsertOrUpdateUser, "InsertOrUpdateUser"}    ,
+         {CommandToClient, "CommandToClient"}    ,
+         {ServerUsersList, "ServerUsersList"}    ,
+         {ExecuteSqlQuery, "ExecuteSqlQuery"}    ,
+         {GetMessages, "GetMessages"}    ,
+         {UpdateServerConfiguration, "UpdateServerConfiguration"}    ,
+         {HttpServiceConfiguration, "HttpServiceConfiguration"}    ,
+         {InsertToDatabaseFromArray, "InsertToDatabaseFromArray"}    ,
+         {SetNewDeviceId, "SetNewDeviceId"}    ,
+         {ObjectSetToDatabase, "ObjectSetToDatabase"}    ,
+         {ObjectGetFromDatabase, "ObjectGetFromDatabase"}    ,
     })
 
 }
@@ -151,7 +155,7 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, deviceType)
         (std::string, address)
         (std::string, workplace)
-        (std::string, price)
+        (std::string, price_type)
         (std::string, warehouse)
         (std::string, subdivision)
         (std::string, organization)
@@ -179,20 +183,24 @@ namespace arcirk::database {
         tbWorkplaces,
         tbDevices,
         tbDevicesType,
+        tbDocuments,
+        tbDocumentsTables,
         tables_INVALID=-1,
     };
 
     NLOHMANN_JSON_SERIALIZE_ENUM(tables, {
-        {tables_INVALID, nullptr}    ,
-        {tbUsers, "Users"}  ,
-        {tbMessages, "Messages"}  ,
-        {tbOrganizations, "Organizations"}  ,
-        {tbSubdivisions, "Subdivisions"}  ,
-        {tbWarehouses, "Warehouses"}  ,
-        {tbPriceTypes, "PriceTypes"}  ,
-        {tbWorkplaces, "Workplaces"}  ,
-        {tbDevices, "Devices"}  ,
-        {tbDevicesType, "DevicesType"}  ,
+         {tables_INVALID, nullptr}    ,
+         {tbUsers, "Users"}  ,
+         {tbMessages, "Messages"}  ,
+         {tbOrganizations, "Organizations"}  ,
+         {tbSubdivisions, "Subdivisions"}  ,
+         {tbWarehouses, "Warehouses"}  ,
+         {tbPriceTypes, "PriceTypes"}  ,
+         {tbWorkplaces, "Workplaces"}  ,
+         {tbDevices, "Devices"}  ,
+         {tbDevicesType, "DevicesType"}  ,
+         {tbDocuments, "Documents"}  ,
+         {tbDocumentsTables, "DocumentsTables"}  ,
     });
 
     enum devices_type{
