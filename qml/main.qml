@@ -54,11 +54,15 @@ ApplicationWindow {
         id: barcodeInfo;
 
         onBarcodeInfoChanged: {
-            //if(wsSettings.priceCheckerMode)
+            if(wsSettings.priceCheckerMode)
                 openPageScanner();
-            pageScanner.setBarcode(wsBarcodeInfo);
-            if(wsBarcodeInfo.isLongImgLoad)
-                wsClient.get_image_data(wsBarcodeInfo);
+            if(stackView.currentItem.objectName === "pageScanner"){
+                pageScanner.setBarcode(wsBarcodeInfo);
+                if(wsBarcodeInfo.isLongImgLoad)
+                    wsClient.get_image_data(wsBarcodeInfo);
+            }else if(stackView.currentItem.objectName === "pageDocument"){
+                pageDocument.setBarcode(wsBarcodeInfo);
+            }
         }
 
         onImageSourceChanged: {
@@ -168,6 +172,25 @@ ApplicationWindow {
             if(stackView.currentItem.objectName === "pageDocuments")
                 stackView.currentItem.setModelSource(jsonModel);
         }
+
+        onReadDocumentTable: function(jsonModel){
+            if(stackView.currentItem.objectName === "pageDocuments"){
+
+                if(stackView.currentItem != pageDocument){
+                    var item = stackView.find(function(item) {
+                        return item.objectName === "pageDocument";
+                    })
+                    if(item === null)
+                        stackView.push(pageDocument);
+                    else{
+                        stackView.pop(item)
+                    }
+                }else
+                    stackView.pop()
+
+                stackView.currentItem.setModelSource(jsonModel);
+            }
+        }
     }
 
     menuBar: ToolBar{
@@ -226,6 +249,8 @@ ApplicationWindow {
                         stackView.pop()
                     if(stackView.currentItem.objectName === "pageDocuments"){
                         wsClient.getDocuments();
+                        btnDocumentNew.enabled = true;
+                        attachFocus.focus = true
                     }
                 }
 
@@ -338,6 +363,16 @@ ApplicationWindow {
     PageDocuments{
         objectName: "pageDocuments"
         id: pageDocuments
+        visible: false
+        onGetContent: function(ref){
+            pageDocument.ref = ref;
+            wsClient.getDocumentContent(ref)
+        }
+    }
+
+    PageDocument{
+        objectName: "pageDocument"
+        id: pageDocument
         visible: false
     }
 

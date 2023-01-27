@@ -51,12 +51,18 @@ public:
 
     void removeRow(int row);
     void addRow(const QJsonObject& row);
+    void addRow(const QString& rowJson);
+    Q_INVOKABLE void addRow(const QString& barcode, const QString& parent, int quantity);
+
     int row(const QPair<QString, QString>& key);
     QJsonObject getRowObject(int row);
     void updateRow(const QJsonObject& obj, int index);
+    Q_INVOKABLE void updateRow(const QString& barcode, const int quantity, int index);
 
     void moveUp(int row);
     void moveDown(int row);
+
+    Q_INVOKABLE QModelIndex findInTable(const QString &value, int column, bool findData);
 
 signals:
     void jsonTextChanged();
@@ -64,6 +70,8 @@ private:
     bool setJson( const QJsonArray& array );
     static QString fromBase64(const QString& str);
     virtual QJsonObject getJsonObject( const QModelIndex &index ) const;
+
+    QJsonObject getEmptyRow();
 
     Header m_header{};
     QJsonArray m_json;

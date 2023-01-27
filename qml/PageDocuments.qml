@@ -14,6 +14,8 @@ Page {
     property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 8
     property int imageMaximumHeight: screenWidth > 1000 ? 400 : 250
 
+    property string currentDocument: ""
+
     function setModelSource(value){
         wsDocuments.jsonText = value;
         wsDocuments.reset();
@@ -22,6 +24,8 @@ Page {
     property QJsonTableModel wsDocuments: QJsonTableModel{
 
     }
+
+    signal getContent(string ref);
 
     Column{
         anchors.fill: parent
@@ -59,7 +63,7 @@ Page {
 
         ListView {
             id: listView
-            topMargin: 10 + rowTitle.height + rowTitle.padding
+            //topMargin: 10 + rowTitle.height + rowTitle.padding
             leftMargin: 10
             rightMargin: 10
             anchors.fill: parent
@@ -88,7 +92,7 @@ Page {
                         ctrlPaddig: 10
                         textColor: pageDocs.theme !== "Dark" ? "black" : "white"
                         row: model.row;
-
+                        fontPixelSize: fontPixelSizeGrey + 8
                         onSelectItem: function(selRow){
                             console.log("onSelectItem " + selRow)
                             listView.selectedRow(listView.model.index(selRow,0))
@@ -99,13 +103,14 @@ Page {
             }
 
             onSelectedRow: function(index){
-//                var uuid = ""
-//                var iUuid = wsDocuments.getColumnIndex("uuid")
-//                if(iUuid !== -1){
-//                    uuid = wsDocuments.value(index, Qt.UserRole + iUuid)
-//                    console.log(uuid)
-//                }else
-//                    return;
+                var uuid = ""
+                var iUuid = wsDocuments.getColumnIndex("ref")
+                if(iUuid !== -1){
+                    uuid = wsDocuments.value(index, Qt.UserRole + iUuid)
+                    console.log(uuid)
+                    pageDocs.getContent(uuid)
+                }else
+                    return;
 //                var doc = ""
 //                var iDoc = wsDocuments.getColumnIndex("document_name")
 //                if(iDoc !== -1){

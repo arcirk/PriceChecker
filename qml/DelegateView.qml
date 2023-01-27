@@ -10,6 +10,7 @@ RoundPane {
     padding: 10
 
     property alias name: txt.text
+    property alias fontPixelSize: txt.font.pixelSize
     property alias icon: image.source
     property bool expandIcon: false
     property alias textColor: txt.color
@@ -157,21 +158,28 @@ RoundPane {
                         id: contextMenu
                         Action {
                             text: "Открыть"
+                            icon.source: "qrc:/img/edit_document.svg"
                             onTriggered: {
                                 control.menuTriggered("mnuOpen")
                             }
                         }
+//                        Action {
+//                            text: "Сохранить в директорию"
+//                            onTriggered: {
+//                                control.menuTriggered("mnuSaveAs")
+//                            }
+//                        }
+//                        Action { text: "Копировать" }
+//                        Action { text: "Переслать" }
                         Action {
-                            text: "Сохранить в директорию"
+                            text: "Удалить";
+                            enabled: !menuDeleteDisable;
+                            icon.source: "qrc:/img/delete_doc.svg"
                             onTriggered: {
-                                control.menuTriggered("mnuSaveAs")
+                                console.debug("delete")
                             }
                         }
-                        Action { text: "Копировать" }
-                        Action { text: "Переслать" }
-                        Action { text: "Удалить"; enabled: !menuDeleteDisable; onTriggered: console.debug("delete")}
                     }
-
                 }
             }
 

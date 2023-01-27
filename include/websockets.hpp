@@ -9,6 +9,7 @@
 #include <QQueue>
 #include "barcode_info.hpp"
 #include <QTimer>
+#include "qjsontablemodel.h"
 
 typedef std::function<void()> async_await;
 
@@ -71,7 +72,10 @@ public:
     };
 
     Q_INVOKABLE void getDocuments();
+    Q_INVOKABLE void getDocumentContent(const QString& ref);
     Q_INVOKABLE QString documentDate(const int value) const;
+
+    Q_INVOKABLE void documentContentUpdate(const QString& barcode, const int quantity, const QString& parent, const QString& ref, QJsonTableModel* model);
 
 private:
     QWebSocket* m_client;
@@ -135,6 +139,7 @@ signals:
     void notify(const QString &message);
 
     void readDocuments(const QString& jsonModel);
+    void readDocumentTable(const QString& jsonModel);
 };
 
 #endif // WEBSOCKETS_HPP

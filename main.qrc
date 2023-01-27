@@ -28,5 +28,9 @@
         <file>img/left_collapse.svg</file>
         <file>img/left_collapse_lite.png</file>
         <file>img/left_collapse_lite.svg</file>
+        <file>qml/PageDocument.qml</file>
+        <file>img/delete_doc.svg</file>
+        <file>img/edit_document.svg</file>
+        <file>qml/DialogEditBarcode.qml</file>
     </qresource>
 </RCC>

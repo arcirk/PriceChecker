@@ -1,4 +1,5 @@
 #include "include/websockets.hpp"
+#include "include/database_struct.hpp"
 //#include <QNetworkInterface>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -392,6 +393,11 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
                     QString table = QByteArray::fromBase64(resp.result.data());
                     emit readDocuments(table);
                 }
+            }else if(tb_name.get<arcirk::database::tables>() == arcirk::database::tables::tbDocumentsTables){
+                if(query_type == "select"){
+                    QString table = QByteArray::fromBase64(resp.result.data());
+                    emit readDocumentTable(table);
+                }
             }
         }
 
@@ -705,11 +711,70 @@ void WebSocketClient::getDocuments()
                  });
 }
 
+void WebSocketClient::getDocumentContent(const QString &ref)
+{
+    nlohmann::json param = {
+        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)},
+        {"query_type", "select"},
+        {"values", nlohmann::json{}},
+        {"where_values", nlohmann::json{
+             {"parent", ref.toStdString()}
+         }}
+    };
+
+    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                     {"query_param", query_param}
+                 });
+}
+
 QString WebSocketClient::documentDate(const int value) const
 {
     if(value > 0){
         return QDateTime::fromSecsSinceEpoch(value).toString("dd.MM.yyyy hh:mm:ss");
     }else{
         return {};
+    }
+}
+
+void WebSocketClient::documentContentUpdate(const QString &barcode, const int quantity, const QString& parent, const QString &ref, QJsonTableModel* model)
+{
+    if(barcode.isEmpty() || parent.isEmpty())
+        return;
+
+    auto row = arcirk::database::document_table();
+    row.barcode = barcode.toStdString();
+    if(ref.isEmpty())
+        row.ref = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    else
+        row.ref = ref.toStdString();
+    row.parent = parent.toStdString();
+    row.quantity = quantity;
+    row.first = "Штрихкоды";
+    row.second = "Штрихкоды";
+
+    nlohmann::json param = {
+        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)},
+        {"query_type", "update_or_insert"},
+        {"values", pre::json::to_json(row)}
+    };
+
+    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                     {"query_param", query_param}
+                 });
+
+    if(model){
+        auto Index = model->getColumnIndex("barcode");
+        if(Index != -1){
+            auto bIndex = model->findInTable(barcode, Index, false);
+            if(!bIndex.isValid()){
+                model->addRow(QString::fromStdString(pre::json::to_json(row).dump()));
+            }else{
+                model->updateRow(barcode, quantity, bIndex.row());
+            }
+            model->reset();
+        }
+
     }
 }

@@ -123,6 +123,11 @@ QJsonObject QJsonTableModel::getJsonObject( const QModelIndex &index ) const
     return value.toObject();
 }
 
+QJsonObject QJsonTableModel::getEmptyRow()
+{
+    return {};
+}
+
 QVariant QJsonTableModel::data( const QModelIndex &index, int role ) const
 {
     if (m_json.size() == 0)
@@ -366,6 +371,14 @@ void QJsonTableModel::updateRow(const QJsonObject &obj, int row)
 
 }
 
+void QJsonTableModel::updateRow(const QString &barcode, const int quantity, int index)
+{
+    auto obj = getRowObject(index);
+    obj["barcode"] = barcode;
+    obj["quantity"] = quantity;
+    updateRow(obj, index);
+}
+
 void QJsonTableModel::moveUp(int row)
 {
     if(row - 1 <  0)
@@ -467,6 +480,24 @@ void QJsonTableModel::moveDown(int row)
      }
 }
 
+QModelIndex QJsonTableModel::findInTable(const QString &value, int column, bool findData)
+{
+    int rows =  rowCount();
+    for (int i = 0; i < rows; ++i) {
+        auto index = this->index(i, column);
+        if(findData){
+            if(value == index.data(Qt::UserRole + 1).toString())
+                return index;
+        }else{
+            QString data = index.data(Qt::UserRole + column).toString();
+            if(value == data)
+                return index;
+        }
+    }
+
+    return QModelIndex();
+}
+
 void QJsonTableModel::setFormatColumn(int column, const QString &fmt)
 {
     m_fmtText.insert(column, fmt);
@@ -506,4 +537,15 @@ void QJsonTableModel::addRow(const QJsonObject &row)
     m_json.append(obj);
     reset();
     m_rowKeys.resize(m_json.size());
+}
+
+void QJsonTableModel::addRow(const QString &rowJson)
+{
+    auto obj = QJsonDocument::fromJson(rowJson.toUtf8()).object();
+    addRow(obj);
+}
+
+void QJsonTableModel::addRow(const QString& barcode, const QString& parent, int quantity)
+{
+
 }
