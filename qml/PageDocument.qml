@@ -80,7 +80,7 @@ Page {
                         id: messageText
                         name: model.barcode + ", Количество: " + model.quantity
                         theme: pageDoc.theme
-                        icon: "qrc:/img/1cv8.png"
+                        //icon: "qrc:/img/1cv8.png"
                         iconSize: 24
                         width: listView.width - messageRow.spacing - 12
                         height: messageText.implicitHeight// + 24
@@ -93,6 +93,7 @@ Page {
                             pageDoc.currentBarcode = model.barcode
                             pageDoc.currentQuantity = model.quantity
                             listView.selectedRow(listView.model.index(selRow,0))
+
                         }
 
                     }
@@ -100,9 +101,11 @@ Page {
             }
 
             onSelectedRow: function(index){
-                dlgEdit.barcode = pageDoc.currentBarcode
-                dlgEdit.quantity = pageDoc.currentQuantity
-                dlgEdit.visible = true
+//                dlgEdit.barcode = pageDoc.currentBarcode
+//                dlgEdit.quantity = pageDoc.currentQuantity
+//                dlgEdit.visible = true
+
+
 //                var uuid = ""
 //                var iUuid = wsDocuments.getColumnIndex("ref")
 //                if(iUuid !== -1){

@@ -362,6 +362,12 @@ QJsonObject QJsonTableModel::getRowObject(int row)
     return QJsonObject();
 }
 
+QString QJsonTableModel::getObjectToString(int row)
+{
+    auto obj = getRowObject(row);
+    return QJsonDocument(obj).toJson();
+}
+
 void QJsonTableModel::updateRow(const QJsonObject &obj, int row)
 {
     if(row >= m_json.size())
@@ -388,7 +394,6 @@ void QJsonTableModel::moveUp(int row)
 
     QJsonObject f =  m_json[row].toObject();
     QJsonObject l =  m_json[step].toObject();
-
 
      m_json[row] = l;
      m_json[step] = f;
@@ -496,6 +501,20 @@ QModelIndex QJsonTableModel::findInTable(const QString &value, int column, bool 
     }
 
     return QModelIndex();
+}
+
+int QJsonTableModel::max(const QString &field)
+{
+    int col_index = getColumnIndex(field);
+    if(col_index == -1)
+        return 0;
+    int result = 0;
+    for (int i = 0; i < rowCount(); ++i) {
+        auto index = this->index(i, col_index);
+        int val = index.data(Qt::UserRole + col_index).toInt();
+        result = std::max(val, result);
+    }
+    return result;
 }
 
 void QJsonTableModel::setFormatColumn(int column, const QString &fmt)

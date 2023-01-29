@@ -7,7 +7,7 @@ import QProxyModel 1.0
 
 RoundPane {
     id: control
-    padding: 10
+    padding: 2
 
     property alias name: txt.text
     property alias fontPixelSize: txt.font.pixelSize
@@ -27,6 +27,8 @@ RoundPane {
     property bool iconButton: false
     property int iconSize: 0
     property int row: -1
+
+    property QtObject hRow: hiddenRow
 
     QProxyModel{
         id: proxyModel
@@ -163,12 +165,6 @@ RoundPane {
                                 control.menuTriggered("mnuOpen")
                             }
                         }
-//                        Action {
-//                            text: "Сохранить в директорию"
-//                            onTriggered: {
-//                                control.menuTriggered("mnuSaveAs")
-//                            }
-//                        }
 //                        Action { text: "Копировать" }
 //                        Action { text: "Переслать" }
                         Action {
@@ -185,7 +181,7 @@ RoundPane {
 
             Image {
                 id: expandIconImage
-                sourceSize.height: txt.implicitHeight
+                sourceSize.height: 16// txt.implicitHeight
                 Layout.alignment: Qt.AlignRight
                 visible: control.expandIcon
                 source: control.theme === "Dark" ? "qrc:/img/left_collapse_lite.png" : "qrc:/img/left_collapse.png"
@@ -261,6 +257,23 @@ RoundPane {
 
         }
 
+        Row{
+            id: hiddenRow
+            //visible: false
+            height: 0
+            property alias tVisible: txtDelegateComment.visible
+            Text{
+                id: txtDelegateComment
+                visible: true
+                //implicitHeight: 0
+                text: "Текст комментария"
+            }
+        }
+
+//        ChildDelegate{
+//            anchors.top: rowControl.bottom
+//        }
+
         Pane {
             id: nameItem
             visible: false
@@ -306,11 +319,6 @@ RoundPane {
 
     onChldrenListChanged: {
        nameItem.visible = control.chldrenList
-    }
-
-    onStateChanged: {
-        if(control.expandIcon)
-            expandIconImage.state = control.state === "shown" ? "expanded" : "collapsed"
     }
 
 }

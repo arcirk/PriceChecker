@@ -11,8 +11,10 @@ import BarcodeParser 1.0
 import BarcodeInfo 1.0
 
 ApplicationWindow {
-    width: 1280
-    height: 800
+//    width: 1280
+//    height: 800
+    width: 720
+    height: 1280
     visible: true
     title: qsTr("Прайс - чекер")
 
@@ -20,14 +22,35 @@ ApplicationWindow {
     Material.theme: myTheme === "Light" ? Material.Light : Material.Dark
 
     function updateToolbarButton(){
-        btnArrowleft.visible = false
-        if(!wsSettings.priceCheckerMode){
-            //btnScan.enabled = stackView.currentItem.objectName === "pageScanner";
-            btnArrowleft.visible = stackView.currentItem.objectName === "pageScanner"
-        }else{
-            btnScan.enabled = true;
-            btnDocuments.visible = false;
+//        btnArrowleft.visible = false
+//        if(!wsSettings.priceCheckerMode){
+//            //btnScan.enabled = stackView.currentItem.objectName === "pageScanner";
+//            btnArrowleft.visible = stackView.currentItem.objectName === "pageScanner"
+//        }else{
+//            btnScan.enabled = true;
+//            btnDocuments.visible = false;
+//        }
+
+        if(stackView.currentItem.objectName === "pageStart"){
+            btnDocumentNew.visible = false;
+            btnArrowleft.visible = false
+            btnDocuments.visible = !wsSettings.priceCheckerMode
+            if(wsSettings.keyboardInputMode)
+                attachFocus.focus = true
+        }else if(stackView.currentItem.objectName === "pageScanner"){
+            btnDocumentNew.visible = false;
+            btnArrowleft.visible = true
+            btnDocuments.visible = !wsSettings.priceCheckerMode
+            if(wsSettings.keyboardInputMode)
+                attachFocus.focus = true
+        }else if(stackView.currentItem.objectName === "pageDocuments"){
+            btnDocumentNew.visible = true;
+            btnArrowleft.visible = true
+            btnDocuments.visible = false
+            if(wsSettings.keyboardInputMode)
+                attachFocus.focus = true
         }
+
     }
 
     property BarcodeParser wsBarcodeParser: BarcodeParser{
@@ -56,6 +79,11 @@ ApplicationWindow {
         onBarcodeInfoChanged: {
             if(wsSettings.priceCheckerMode)
                 openPageScanner();
+            else{
+                if(stackView.currentItem.objectName === "pageStart")
+                    openPageScanner();
+            }
+
             if(stackView.currentItem.objectName === "pageScanner"){
                 pageScanner.setBarcode(wsBarcodeInfo);
                 if(wsBarcodeInfo.isLongImgLoad)
@@ -72,6 +100,15 @@ ApplicationWindow {
 
         onClearData: {
             pageScanner.setBarcode(wsBarcodeInfo);
+        }
+    }
+
+    DialogDocumentInfo{
+        id: docInfo
+        visible: false
+
+        onVisibleChanged: {
+            attachFocus.focus = !docInfo.visible;
         }
     }
 
@@ -208,6 +245,7 @@ ApplicationWindow {
             ToolButton{
                 id: btnArrowleft
                 icon.source: "qrc:/img/arrow-left.svg"
+                visible: false
                 onClicked: {
                     stackView.pop();
                     updateToolbarButton();
@@ -216,6 +254,7 @@ ApplicationWindow {
             ToolButton{
                 id: btnScan
                 icon.source: "qrc:/img/qr16.png"
+                visible: true
                 onClicked: {
 //                    if(stackView.currentItem != pageScanner){
 //                        var item = stackView.find(function(item) {
@@ -235,6 +274,7 @@ ApplicationWindow {
             ToolButton{
                 id: btnDocuments
                 icon.source: "qrc:/img/file-document-multiple.svg"
+                visible: true
                 onClicked: {
                     if(stackView.currentItem != pageDocuments){
                         var item = stackView.find(function(item) {
@@ -247,10 +287,16 @@ ApplicationWindow {
                         }
                     }else
                         stackView.pop()
+
+                    updateToolbarButton();
+
                     if(stackView.currentItem.objectName === "pageDocuments"){
                         wsClient.getDocuments();
-                        btnDocumentNew.enabled = true;
-                        attachFocus.focus = true
+////                        btnDocumentNew.visible = true;
+////                        btnArrowleft.visible = true
+////                        btnDocuments.visible = false
+////                        if(wsSettings.keyboardInputMode)
+////                            attachFocus.focus = true
                     }
                 }
 
@@ -258,19 +304,14 @@ ApplicationWindow {
             ToolButton{
                 id: btnDocumentNew
                 icon.source: "qrc:/img/documetAdd.svg"
-                enabled: false
+                visible: false
                 onClicked: {
-//                    if(stackView.currentItem != pageDocuments){
-//                        var item = stackView.find(function(item) {
-//                            return item.objectName === "pageDocuments";
-//                        })
-//                        if(item === null)
-//                            stackView.push(pageDocuments);
-//                        else{
-//                            stackView.pop(item)
-//                        }
-//                    }else
-//                        stackView.pop()
+                    //updateToolbarButton();
+                    docInfo.docDate = Qt.formatDateTime(new Date(), "dd.MM.yyyy hh:mm:ss")
+                    docInfo.docNumber = pageDocuments.new_number();
+                    //docInfo.modelIndex = pageDocuments.wsDocuments.emptyIndex();
+                    docInfo.isNew = true
+                    docInfo.visible = true
                 }
             }
             Label{
@@ -393,6 +434,10 @@ ApplicationWindow {
         function onMessageFromService(message) {
             if(wsSettings.priceCheckerMode)
                 openPageScanner();
+            else{
+                if(stackView.currentItem.objectName === "pageStart")
+                    openPageScanner();
+            }
             if(wsClient.isStarted()){
                 //wsClient.sendBarcode(message, pageScanner.document_id)
                 wsClient.get_barcode_information(message, wsBarcodeInfo)

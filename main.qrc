@@ -32,5 +32,14 @@
         <file>img/delete_doc.svg</file>
         <file>img/edit_document.svg</file>
         <file>qml/DialogEditBarcode.qml</file>
+        <file>img/1cv8.png</file>
+        <file>qml/DialogDocumentInfo.qml</file>
+        <file>qml/DatePicker.qml</file>
+        <file>img/arrow_back.svg</file>
+        <file>img/arrow_forward.svg</file>
+        <file>img/calendar.svg</file>
+        <file>qml/DocumentsDelegate.qml</file>
+        <file>qml/ChildDelegate.qml</file>
+        <file>qml/ListItemDelegate.qml</file>
     </qresource>
 </RCC>

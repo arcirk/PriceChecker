@@ -56,6 +56,7 @@ public:
 
     int row(const QPair<QString, QString>& key);
     QJsonObject getRowObject(int row);
+    Q_INVOKABLE QString getObjectToString(int row);
     void updateRow(const QJsonObject& obj, int index);
     Q_INVOKABLE void updateRow(const QString& barcode, const int quantity, int index);
 
@@ -64,6 +65,11 @@ public:
 
     Q_INVOKABLE QModelIndex findInTable(const QString &value, int column, bool findData);
 
+    Q_INVOKABLE int max(const QString& field);
+
+    Q_INVOKABLE QModelIndex emptyIndex(){
+        return QModelIndex();
+    };
 signals:
     void jsonTextChanged();
 private:

@@ -392,7 +392,8 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
                 if(query_type == "select"){
                     QString table = QByteArray::fromBase64(resp.result.data());
                     emit readDocuments(table);
-                }
+                }else if(query_type == "update_or_insert")
+                    getDocuments();
             }else if(tb_name.get<arcirk::database::tables>() == arcirk::database::tables::tbDocumentsTables){
                 if(query_type == "select"){
                     QString table = QByteArray::fromBase64(resp.result.data());
@@ -711,6 +712,23 @@ void WebSocketClient::getDocuments()
                  });
 }
 
+void WebSocketClient::getDocumentInfo(const QString &ref)
+{
+    nlohmann::json param = {
+        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+        {"query_type", "select"},
+        {"values", nlohmann::json{}},
+        {"where_values", nlohmann::json{
+             {"ref", ref.toStdString()}
+         }}
+    };
+
+    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                     {"query_param", query_param}
+                 });
+}
+
 void WebSocketClient::getDocumentContent(const QString &ref)
 {
     nlohmann::json param = {
@@ -735,6 +753,11 @@ QString WebSocketClient::documentDate(const int value) const
     }else{
         return {};
     }
+}
+
+void WebSocketClient::addDocument(const QString &number, const int date, const QString &comment)
+{
+
 }
 
 void WebSocketClient::documentContentUpdate(const QString &barcode, const int quantity, const QString& parent, const QString &ref, QJsonTableModel* model)
@@ -777,4 +800,62 @@ void WebSocketClient::documentContentUpdate(const QString &barcode, const int qu
         }
 
     }
+}
+
+void WebSocketClient::documentUpdate(const QString &number, const QString &date, const QString comment, const QString source)
+{
+
+    auto source_ = arcirk::database::table_default_struct<arcirk::database::documents>(arcirk::database::tbDocuments);
+
+    try {
+        source_ = pre::json::from_json<arcirk::database::documents>(nlohmann::json::parse(source.toStdString()));
+    } catch (...) {
+        source_ = arcirk::database::table_default_struct<arcirk::database::documents>(arcirk::database::tbDocuments);
+    }
+
+    nlohmann::json cache{};
+
+    try {
+        cache = nlohmann::json::parse(source_.cache);
+    } catch (...) {
+    }
+
+    if(source_.ref == arcirk::uuids::nil_string_uuid() || source_.ref.empty()){
+        source_.ref = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+        source_.first = "ПодборШтрихкодов";
+        source_.second = "Подбор штрихкодов";
+        source_.xml_type = "DocumentRef.ПодборШтрихкодов";
+        source_.device_id = wsSettings->deviceId().toStdString();
+    }
+
+    if(cache.is_discarded()){
+        cache = {
+            {"comment", comment.toStdString()}
+        };
+    }else{
+        cache["comment"] = comment.toStdString();
+    }
+
+    source_.number = number.toStdString();
+
+    auto dt = QDateTime::fromString(date, "dd.MM.yyyy hh:mm:ss");
+    source_.date = dt.toSecsSinceEpoch();// + dt.offsetFromUtc();
+    source_.cache = cache.dump();
+
+    nlohmann::json param = {
+        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+        {"query_type", "update_or_insert"},
+        {"values", pre::json::to_json(source_)}
+    };
+
+    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                     {"query_param", query_param}
+                 });
+
+}
+
+QString WebSocketClient::documentGenerateNewNumber(const int id)
+{
+    return QString("%1").arg(id, 9, 'g', -1, '0');
 }

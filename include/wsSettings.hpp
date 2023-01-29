@@ -5,7 +5,9 @@
 #include <QUrl>
 #include <QUuid>
 //#include <nlohmann/json.hpp>
+#include "database_struct.hpp"
 #include "shared_struct.hpp"
+
 
 namespace arcirk{
 //    QString get_sha1(const QByteArray& p_arg){

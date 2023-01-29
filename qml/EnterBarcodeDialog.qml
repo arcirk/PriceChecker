@@ -7,7 +7,7 @@ import QtQuick.Layouts 1.12
 Popup {
     id: enterBarcodeDialog
     anchors.centerIn: parent
-    width: parent.width / 2
+    width: screenWidth > 1000 ? screenWidth / 2 : screenWidth - 20
     //height: 200
     modal: true
     focus: true
@@ -23,29 +23,35 @@ Popup {
         anchors.right: parent.right
         anchors.left: parent.left
         anchors.margins: 10
-        columnSpacing: 20
+        columnSpacing: 10
         Text {
             id: txt
             font.pixelSize: 20
             text: qsTr("Введите штрихкод:")
             color: "white"
         }
-
+        Label{
+            text: ""
+        }
         TextField{
             font.pixelSize: 20
             id: txtBarcode
             Layout.fillWidth: true
             Material.accent: Material.Blue
+            Layout.columnSpan: 2
             onAccepted: {
                 txtBarcode.focus = false
             }
         }
-
-        Label{
-            text: ""
-        }
+//        Label{
+//            text: ""
+//        }
+//        Label{
+//            text: ""
+//        }
         RowLayout{
             Layout.alignment: Qt.AlignRight
+            Layout.columnSpan: 2
             Button {
                 text: "OK"
                 onClicked: {

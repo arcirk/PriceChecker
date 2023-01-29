@@ -46,9 +46,9 @@ Popup {
         columns: 2
         anchors.right: parent.right
         anchors.left: parent.left
-        anchors.margins: 10
+        anchors.margins: screenWidth > 1000 ? 10 : 2
         columnSpacing: fontPixelSize
-
+        rowSpacing: 0
         Text{
             font.pixelSize: fontPixelSize
             text: "Сервер:"
@@ -248,6 +248,8 @@ Popup {
                 verticalAlignment: Text.AlignVCenter
                 leftPadding: showImage.indicator.width + showImage.spacing
                 wrapMode: Label.Wrap
+                topPadding: 0
+                bottomPadding: 0
             }
             onCheckedChanged: {
                 wsSettings.showImage = showImage.checked
@@ -271,6 +273,8 @@ Popup {
                 verticalAlignment: Text.AlignVCenter
                 leftPadding: isKeyboardMode.indicator.width + isKeyboardMode.spacing
                 wrapMode: Label.Wrap
+                topPadding: 0
+                bottomPadding: 0
             }
             onCheckedChanged: {
                 wsSettings.keyboardInputMode = isKeyboardMode.checked
@@ -294,6 +298,8 @@ Popup {
                 verticalAlignment: Text.AlignVCenter
                 leftPadding: isPriceCheckerMode.indicator.width + isPriceCheckerMode.spacing
                 wrapMode: Label.Wrap
+                topPadding: 0
+                bottomPadding: 0
             }
             onCheckedChanged: {
                 wsSettings.priceCheckerMode = isPriceCheckerMode.checked
@@ -319,6 +325,8 @@ Popup {
                 verticalAlignment: Text.AlignVCenter
                 leftPadding: isAutoConnect.indicator.width + isAutoConnect.spacing
                 wrapMode: Label.Wrap
+                topPadding: 0
+                bottomPadding: 0
             }
             onCheckedChanged: {
                 wsSettings.autoConnect = isAutoConnect.checked

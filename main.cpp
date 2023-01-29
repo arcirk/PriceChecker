@@ -30,10 +30,15 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 #ifdef Q_OS_ANDROID
     QtAndroidService *qtAndroidService = new QtAndroidService(&app);
-#endif
     QScreen *screen = app.primaryScreen();
     int width = screen->size().width();
     int height = screen->size().height();
+#else
+    //QScreen *screen = app.primaryScreen();
+    int width = 720; //screen->size().width();
+    int height = 1280; //screen->size().height();
+#endif
+
 
     QQmlContext* context = engine.rootContext();
     context->setContextProperty("screenWidth", width);

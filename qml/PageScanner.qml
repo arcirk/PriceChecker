@@ -14,7 +14,7 @@ Page {
     property alias warehouse: stock.text
     property alias price: priceText.text
 
-    property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 8
+    property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 12
     property int imageMaximumHeight: screenWidth > 1000 ? 400 : 250
 
     function setBarcode(bInfo){

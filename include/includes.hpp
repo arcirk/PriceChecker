@@ -46,6 +46,14 @@ namespace arcirk{
         }else
             return {};
     }
+    namespace uuids{
+    //    bool is_valid_uuid(std::string const& maybe_uuid, boost::uuids::uuid& result);
+    //    boost::uuids::uuid string_to_uuid(const std::string& sz_uuid, bool random_uuid = false);
+        inline std::string nil_string_uuid() {return "00000000-0000-0000-0000-000000000000";};
+    //    boost::uuids::uuid nil_uuid();
+    //    std::string uuid_to_string(const boost::uuids::uuid& uuid);
+    //    boost::uuids::uuid random_uuid();
+    }
 }
 
 #endif
