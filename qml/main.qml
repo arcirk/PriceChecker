@@ -110,6 +110,10 @@ ApplicationWindow {
         onVisibleChanged: {
             attachFocus.focus = !docInfo.visible;
         }
+
+        onAccept: function(index){
+            wsClient.documentUpdate(docInfo.docNumber, docInfo.docDate, docInfo.docComent, "", docInfo.uuid)
+        }
     }
 
     Item {

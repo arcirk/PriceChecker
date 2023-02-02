@@ -33,9 +33,9 @@ Page {
 //        onAdd_document: function() {
 //            wsClient.documentUpdate(docInfo.docNumber, docInfo.docDate, docInfo.docComent, "", docInfo.uuid)
 //        }
-        onAccept: function(modelIndex){
+        onAccept:function(modelIndex){
             let source = "";
-            if(modelIndex !== null){
+            if(modelIndex !== undefined){
                 try{
                     source = wsDocuments.getObjectToString(modelIndex.row)
                 }catch(e){
@@ -127,6 +127,10 @@ Page {
                                 docInfo.visible = true
                             }
                         }
+                        onClicked: function(row){
+                            console.log("onSelectItem " + row)
+                            listView.selectedRow(wsDocuments.index(row,0))
+                        }
                     }
                 }
             }
@@ -201,27 +205,27 @@ Page {
 //                }
 //            }
 
-//            onSelectedRow: function(index){
-//                var uuid = ""
-//                var iUuid = wsDocuments.getColumnIndex("ref")
-//                if(iUuid !== -1){
-//                    uuid = wsDocuments.value(index, Qt.UserRole + iUuid)
-//                    console.log(uuid)
-//                    pageDocs.getContent(uuid)
-//                }else
-//                    return;
-////                var doc = ""
-////                var iDoc = wsDocuments.getColumnIndex("document_name")
-////                if(iDoc !== -1){
-////                    doc = wsDocuments.value(index, Qt.UserRole + iDoc)
-////                }
-////                var uuid_form = ""
-////                var iUuid_form = wsDocuments.getColumnIndex("uuid_form")
-////                if(iUuid_form !== -1){
-////                    uuid_form = wsDocuments.value(index, Qt.UserRole + iUuid_form)
-////                }
-////                pageDocs.selectDocument(uuid, doc, uuid_form)
-//            }
+            onSelectedRow: function(index){
+                var uuid = ""
+                var iUuid = wsDocuments.getColumnIndex("ref")
+                if(iUuid !== -1){
+                    uuid = wsDocuments.value(index, Qt.UserRole + iUuid)
+                    console.log(uuid)
+                    pageDocs.getContent(uuid)
+                }else
+                    return;
+//                var doc = ""
+//                var iDoc = wsDocuments.getColumnIndex("document_name")
+//                if(iDoc !== -1){
+//                    doc = wsDocuments.value(index, Qt.UserRole + iDoc)
+//                }
+//                var uuid_form = ""
+//                var iUuid_form = wsDocuments.getColumnIndex("uuid_form")
+//                if(iUuid_form !== -1){
+//                    uuid_form = wsDocuments.value(index, Qt.UserRole + iUuid_form)
+//                }
+//                pageDocs.selectDocument(uuid, doc, uuid_form)
+            }
 
             ScrollBar.vertical: ScrollBar {}
         }

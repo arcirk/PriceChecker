@@ -79,7 +79,7 @@ RoundPane {
     signal menuTriggered(string name)
     //signal imageClick()
     signal clicked(string buttonId)
-    signal selectItem(int selRow)
+    //signal selectItem(int selRow)
 
     Column{
         id: colControl
@@ -106,7 +106,7 @@ RoundPane {
                 cursorShape: Qt.PointingHandCursor;
 
                 onClicked: {
-                    control.clicked(0)
+                    control.clicked(modelIndex.row)
                     console.log("onClicked");
                 }
                 onEntered: {
@@ -119,7 +119,7 @@ RoundPane {
                     if(!control.checkable)
                         control.Material.elevation = 7
                     console.log("onExited");
-                    selectItem(control.row)
+                    //selectItem(control.row)
                 }
                 onPressAndHold: {
                         if (!control.menuDisable)
@@ -183,7 +183,8 @@ RoundPane {
                 cursorShape: Qt.PointingHandCursor;
 
                 onClicked: {
-                    control.clicked(0)
+                    control.clicked(control.row)
+                    //selectItem(control.row)
                     console.log("onClicked");
                 }
                 onEntered: {
@@ -195,8 +196,7 @@ RoundPane {
                 onExited: {
                     if(!control.checkable)
                         control.Material.elevation = 7
-                    console.log("onExited");
-                    selectItem(control.row)
+                    console.log("onExited");                   
                 }
                 onPressAndHold: {
                         if (!menuDisable)

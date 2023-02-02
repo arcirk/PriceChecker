@@ -10,6 +10,7 @@
 #include "barcode_info.hpp"
 #include <QTimer>
 #include "qjsontablemodel.h"
+#include <QtSql>
 
 typedef std::function<void()> async_await;
 
@@ -94,6 +95,8 @@ private:
 
     QQueue<async_await> m_async_await;
 
+    QSqlDatabase sqlDatabase;
+
     static QString get_sha1(const QByteArray& p_arg);
 
     void parse_response(const QString& resp);
@@ -116,6 +119,8 @@ private:
             f();
         }
     };
+
+    void synchronizeBase();
 
 private slots:
 

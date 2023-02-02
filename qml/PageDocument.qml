@@ -76,26 +76,40 @@ Page {
                 Row {
                     id: messageRow
                     spacing: 6
-                    DelegateView{
-                        id: messageText
-                        name: model.barcode + ", Количество: " + model.quantity
-                        theme: pageDoc.theme
-                        //icon: "qrc:/img/1cv8.png"
-                        iconSize: 24
+//                    DelegateView{
+//                        id: messageText
+//                        name: model.barcode + ", Количество: " + model.quantity
+//                        theme: pageDoc.theme
+//                        //icon: "qrc:/img/1cv8.png"
+//                        iconSize: 24
+//                        width: listView.width - messageRow.spacing - 12
+//                        height: messageText.implicitHeight// + 24
+//                        ctrlPaddig: 10
+//                        textColor: pageDoc.theme !== "Dark" ? "black" : "white"
+//                        row: model.row;
+//                        fontPixelSize: fontPixelSizeGrey + 8
+//                        onSelectItem: function(selRow){
+//                            console.log("onSelectItem " + selRow)
+//                            pageDoc.currentBarcode = model.barcode
+//                            pageDoc.currentQuantity = model.quantity
+//                            listView.selectedRow(listView.model.index(selRow,0))
+
+//                        }
+
+//                    }
+                    ListItemDelegate{
+                        id: delegate
+                        modelIndex: model
+                        currentTable: "document_table"
                         width: listView.width - messageRow.spacing - 12
-                        height: messageText.implicitHeight// + 24
-                        ctrlPaddig: 10
-                        textColor: pageDoc.theme !== "Dark" ? "black" : "white"
-                        row: model.row;
-                        fontPixelSize: fontPixelSizeGrey + 8
-                        onSelectItem: function(selRow){
-                            console.log("onSelectItem " + selRow)
-                            pageDoc.currentBarcode = model.barcode
-                            pageDoc.currentQuantity = model.quantity
-                            listView.selectedRow(listView.model.index(selRow,0))
+                        uuid: model.ref
+                        onMenuTriggered: function(command){
 
                         }
-
+                        onClicked: function(row){
+//                            console.log("onSelectItem " + row)
+//                            listView.selectedRow(wsDocuments.index(row,0))
+                        }
                     }
                 }
             }

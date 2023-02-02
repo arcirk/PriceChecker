@@ -5,6 +5,7 @@
 #include <QNetworkReply>
 #include <QEventLoop>
 #include <QDateTime>
+#include <memory>
 
 #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 void* _crypt(void* data, unsigned data_size, void* key, unsigned key_size)
@@ -52,6 +53,13 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
 
     m_reconnect = new QTimer(this);
     connect(m_reconnect,SIGNAL(timeout()),this,SLOT(onReconnect()));
+
+    sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
+    sqlDatabase.setDatabaseName("pricechecker.sqlite");
+
+    if (!sqlDatabase.open()) {
+        qDebug() << sqlDatabase.lastError().text();
+    }
 }
 
 WebSocketClient::WebSocketClient(QObject *parent)
@@ -69,6 +77,13 @@ WebSocketClient::WebSocketClient(QObject *parent)
 
     m_reconnect = new QTimer(this);
     connect(m_reconnect,SIGNAL(timeout()),this,SLOT(onReconnect()));
+
+    sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
+    sqlDatabase.setDatabaseName("pricechecker.sqlite");
+
+    if (!sqlDatabase.open()) {
+        qDebug() << sqlDatabase.lastError().text();
+    }
 }
 
 WebSocketClient::~WebSocketClient()
@@ -462,6 +477,20 @@ void WebSocketClient::get_workplace_view_options()
                      });
 
     }
+}
+
+void WebSocketClient::synchronizeBase()
+{
+    if(!isStarted())
+        return;
+
+    //Приоретет - устройство
+    //Исходим из того что все изменения могут производится только на устройстве
+    //На сервере - кеш
+    //Если на сервере нет документа - выгружается
+    //Если на сервере есть документ но версия его различная от локальной, на сервер выгружается версия с устройства
+    //
+
 }
 
 QString WebSocketClient::get_hash(const QString& first, const QString& second){

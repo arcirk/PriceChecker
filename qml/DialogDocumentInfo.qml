@@ -13,7 +13,7 @@ Popup {
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
 
-    property QtObject modelIndex: new QtObject()
+    property QtObject modelIndex: undefined
 
     property alias docNumber: txtNumber.text
     property alias docDate: txtDate.text
