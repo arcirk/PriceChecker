@@ -4,6 +4,15 @@
 #include "includes.hpp"
 
 BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), database_config,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (int, version)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
         (arcirk::database), workplaces,
         (int, _id)
         (std::string, first)
@@ -66,7 +75,19 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, barcode)
         (std::string, parent)
 );
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), table_info_sqlite,
+        (int, cid)
+        (std::string, name)
+        (std::string, type)
+        (int, notnull)
+        (std::string, dflt_value)
+        (int, bk)
+);
+
 namespace arcirk::database{
+
     enum tables{
         tbUsers,
         tbMessages,
@@ -80,6 +101,7 @@ namespace arcirk::database{
         tbDocuments,
         tbDocumentsTables,
         tbNomenclature,
+        tbDatabaseConfig,
         tables_INVALID=-1,
     };
 
@@ -97,6 +119,7 @@ namespace arcirk::database{
         {tbDocuments, "Documents"}  ,
         {tbDocumentsTables, "DocumentsTables"}  ,
         {tbNomenclature, "Nomenclature"}  ,
+        {tbDatabaseConfig, "DatabaseConfig"}  ,
     })
 
     enum views{
@@ -162,6 +185,15 @@ namespace arcirk::database{
                                                  "    cache           TEXT      DEFAULT \"\",\n"
                                                  "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000]\n"
                                                  ");";
+
+    const std::string database_config_table_ddl = "CREATE TABLE DatabaseConfig (\n"
+                                               "    _id             INTEGER   PRIMARY KEY AUTOINCREMENT,\n"
+                                               "    [first]         TEXT,\n"
+                                               "    second          TEXT,\n"
+                                               "    ref             TEXT (36) UNIQUE\n"
+                                               "                             NOT NULL,\n"
+                                               "    version         INTEGER  DEFAULT(0)  NOT NULL\n"
+                                               ");";
 
 
     static inline nlohmann::json table_default_json(arcirk::database::tables table) {

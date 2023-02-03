@@ -46,6 +46,7 @@ HEADERS += \
     include/qtandroidservice.h \
     include/query_builder.hpp \
     include/shared_struct.hpp \
+    include/verify_database.hpp \
     include/websockets.hpp \
     include/wsSettings.hpp
 
