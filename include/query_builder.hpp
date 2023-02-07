@@ -9,6 +9,13 @@
 #include <boost/format.hpp>
 #include <exception>
 
+#ifdef IS_USE_QT_LIB
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlRecord>
+#include <QSqlField>
+#endif
+
 void trim(std::string& source){ boost::trim(source);};
 void to_upper(std::string& source){boost::to_upper(source);};
 void to_lower(std::string& source){boost::to_lower(source);};
@@ -25,6 +32,12 @@ class NativeException : public std::exception
          const std::string message;
 };
 
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database::builder), sql_value,
+        (std::string, key)
+        (std::string, alias)
+        (std::string, value)
+);
 
 namespace arcirk::database::builder {
 
@@ -32,6 +45,7 @@ namespace arcirk::database::builder {
 #ifdef IS_USE_SOCI
     using namespace soci;
 #endif
+
     //typedef std::function<void(const std::string& /*result*/,const std::string& /*uuid_session*/)> callback_query_result;
 
     enum sql_query_type{
@@ -97,6 +111,7 @@ namespace arcirk::database::builder {
         std::string key;
         sql_type_of_comparison compare;
         json value;
+        std::string alias;
 
         sql_compare_value() {
             compare = Equals;
@@ -106,10 +121,11 @@ namespace arcirk::database::builder {
             compare = object.value("compare", Equals);
             value = object.value("value", json{});
         }
-        explicit sql_compare_value(const std::string& key_, const json& value_, sql_type_of_comparison compare_ = Equals){
+        explicit sql_compare_value(const std::string& key_, const json& value_, sql_type_of_comparison compare_ = Equals, const std::string& alias_ = ""){
             key = key_;
             compare = compare_;
             value = value_;
+            alias = alias_;
         }
 
         template<class T>
@@ -140,7 +156,7 @@ namespace arcirk::database::builder {
                 if(quotation_marks)
                     result.append("'");
                 i++;
-                if(i != (int)json_object.size())
+                if(i != json_object.size())
                     result.append(",");
             }
 
@@ -154,7 +170,7 @@ namespace arcirk::database::builder {
                 std::string s_val = quotation_marks ? "'%1%'" : "%1%";
                 std::string v;
                 if(value.is_number_integer()){
-                    v = std::to_string(get<int>(value));
+                    v = std::to_string(get<long long>(value));
                 }else if(value.is_number_float()){
                     v = std::to_string(get<double>(value));
                 }else if(value.is_string()){
@@ -171,7 +187,8 @@ namespace arcirk::database::builder {
             json result = {
                     {"key", key},
                     {"compare", compare},
-                    {"value", value}
+                    {"value", value},
+                    {"alias", alias}
             };
             return result;
         }
@@ -213,6 +230,10 @@ namespace arcirk::database::builder {
         };
         ~query_builder()= default;
 
+        static std::shared_ptr<query_builder> create(){
+            return std::make_shared<query_builder>();
+        }
+
         static bool is_select_query(const std::string& query_text){
 
             std::string tmp(query_text);
@@ -233,12 +254,51 @@ namespace arcirk::database::builder {
             queryType = Select;
             result = "select ";
             for (auto itr = m_list.cbegin(); itr != m_list.cend() ; ++itr) {
-                result.append(itr->first);
+                sql_value val = *itr;
+                result.append(val.key);
+                if(!val.alias.empty() && val.key != val.alias)
+                    result.append(" as " + val.alias);
+////                nlohmann::json second = itr->second;
+//                if(val.is_object()){
+////                    try {
+////                        auto val = pre::json::from_json<sql_value>(val_j);
+////                        if(!val.alias.empty())
+////                            result.append(val.key + " as " + val.alias);
+////                        else
+////                            result.append(val.key);
+////                    }catch (...){
+////                        result.append(itr->first);
+////                    }
+//                    result.append(val.keys()).;
+//                    std::string alias = second.value(first, "");
+//                    if(!alias.empty())
+//                        result.append(" as " + alias);
+//                }else{
+//                    result.append(itr->first);
+//                    std::string alias = second.get<std::string>();
+//                    if(!alias.empty())
+//                        result.append(" as " + alias);
+//                }
+
+
                 if(itr != (--m_list.cend())){
                     result.append(",\n");
                 }
             }
             return *this;
+        }
+
+//        void add_filed(const sql_value& val){
+//            m_list.emplace_back(pre::json::to_json(val), "");
+//        }
+//
+//        void add_filed(const std::string& key, const std::string& alias, const nlohmann::json& value){
+//            add_filed(sql_value(key, alias, value.dump()));
+//        }
+
+        query_builder& row_count() {
+            use(nlohmann::json{"count(*)"});
+            return select();
         }
 
         query_builder& join(const std::string& table_name, const json& fields, std::string, sql_join_type join_type, const json& join_options = {}){
@@ -268,7 +328,7 @@ namespace arcirk::database::builder {
             }else{
                 result = "select ";
                 for (auto itr = m_list.begin(); itr != m_list.end() ; ++itr) {
-                    result.append(table_name_ + "." + itr->first + " as " + table_first_alias + "_" + itr->first);
+                    result.append(table_name_ + "." + itr->key + " as " + table_first_alias + "_" + itr->key);
                     if(itr != --m_list.end())
                         result.append(",\n");
                 }
@@ -311,6 +371,11 @@ namespace arcirk::database::builder {
             table_name_ = table_name;
             result.append("\nfrom ");
             result.append(table_name);
+            return *this;
+        }
+        query_builder& from(const query_builder& subquery){
+            result.append("\nfrom ");
+            result.append("(" + subquery.prepare() + ")");
             return *this;
         }
 
@@ -362,6 +427,10 @@ namespace arcirk::database::builder {
             return *this;
         }
 
+        query_builder& create_temp_table(std::string){
+
+        }
+
         query_builder& where_join(const json& values, const std::string& join_table_name, bool use_values){
             std::vector<sql_compare_value> where_values;
             auto items_ = values.items();
@@ -400,22 +469,74 @@ namespace arcirk::database::builder {
             if(source.is_object()){
                 auto items_ = source.items();
                 for (auto itr = items_.begin(); itr != items_.end(); ++itr) {
-                    m_list.emplace_back(itr.key(), itr.value());
+                    auto sql_v = sql_value();
+                    sql_v.alias = itr.key();
+                    if(itr.value().is_string())
+                        sql_v.key = itr.value().get<std::string>();
+                    else
+                        sql_v.key = sql_v.alias;
+                    sql_v.value = itr.value().dump();
+                    m_list.emplace_back(sql_v);
                 }
             }else if(source.is_array()){
                 for (auto itr = source.begin(); itr != source.end(); ++itr) {
-                    m_list.emplace_back(*itr, "");
+                    auto sql_v = sql_value();
+                    const nlohmann::json& v = *itr;
+                    sql_v.value = v.dump();
+                    if(v.is_string()){
+                        sql_v.key = v.get<std::string>();
+                        sql_v.alias = sql_v.key;
+                    }else if(v.is_object()){
+                        auto items = v.items();
+                        for (auto const& val : items) {
+                            sql_v.alias = val.key();
+                            if(val.value().is_string())
+                                sql_v.key = val.value().get<std::string>();
+                            else
+                                sql_v.key = sql_v.alias;
+                            sql_v.value = val.value().dump();
+                        }
+                    }
+                    m_list.emplace_back(sql_v);
                 }
             }
 
         }
 
-        std::string ref() const{
+        [[nodiscard]] std::string ref() const{
             for (auto itr = m_list.cbegin(); itr != m_list.cend(); ++itr) {
-                if(itr->first == "ref")
-                    return itr->second;
+                if(itr->key == "ref"){
+                    auto ref = nlohmann::json::parse(itr->value);
+                    return ref.get<std::string>();
+                }
+
             }
             return {};
+        }
+
+        query_builder& group_by(const json& fields){
+            result +="\ngroup by ";
+            std::vector<std::string> m_grope_list;
+            if(fields.is_object()){
+                auto items_ = fields.items();
+                for (auto itr = items_.begin(); itr != items_.end(); ++itr) {
+                    m_grope_list.emplace_back(itr.key());
+                }
+            }else if(fields.is_array()){
+                for (auto itr = fields.begin(); itr != fields.end(); ++itr) {
+                    m_grope_list.emplace_back(*itr);
+                }
+            }else
+                m_grope_list.emplace_back(fields.get<std::string>());
+
+            for (auto itr = m_grope_list.cbegin(); itr != m_grope_list.cend() ; ++itr) {
+                result.append(*itr);
+                if(itr != (--m_grope_list.cend())){
+                    result.append(",\n");
+                }
+            }
+            return *this;
+
         }
 
         //0=asc, 1=desc
@@ -440,7 +561,8 @@ namespace arcirk::database::builder {
                 for (auto itr = fields.begin(); itr != fields.end(); ++itr) {
                     m_order_list.emplace_back(*itr, sql_order_type::dbASC);
                 }
-            }
+            }else
+                m_order_list.emplace_back(fields.get<std::string>(), sql_order_type::dbASC);
 
             for (auto itr = m_order_list.cbegin(); itr != m_order_list.cend() ; ++itr) {
                 result.append(itr->first);
@@ -453,22 +575,23 @@ namespace arcirk::database::builder {
             return *this;
         }
 
-        query_builder& update(const std::string& table_name, bool use_values){
+        query_builder& update(const std::string& table_name, bool use_values, bool skip_id = true){
             queryType = Update;
             table_name_ = table_name;
             result = str_sample("update %1% set ", table_name);
             for (auto itr = m_list.cbegin(); itr != m_list.cend() ; ++itr) {
-                if(itr->first == "_id")
+                if(itr->alias == "_id" && skip_id)
                     continue;
-                result.append("[" + itr->first + "]");
+                result.append("[" + itr->alias + "]");
                 if(use_values){
                     std::string value;
-                    if(itr->second.is_string())
-                        value = itr->second.get<std::string>();
-                    else if(itr->second.is_number_float())
-                        value = std::to_string(itr->second.get<double>());
-                    else if(itr->second.is_number_integer())
-                        value = std::to_string(itr->second.get<int>());
+                    auto val = nlohmann::json::parse(itr->value);
+                    if(val.is_string())
+                        value = val.get<std::string>();
+                    else if(val.is_number_float())
+                        value = std::to_string(val.get<double>());
+                    else if(val.is_number_integer())
+                        value = std::to_string(val.get<long long>());
 
                     if(value.empty())
                         result.append("=''");
@@ -484,23 +607,24 @@ namespace arcirk::database::builder {
             return *this;
         }
 
-        query_builder& insert(const std::string& table_name, bool use_values){
+        query_builder& insert(const std::string& table_name, bool use_values, bool skip_id = true){
             queryType = Insert;
             table_name_ = table_name;
             result = str_sample("insert into %1% (", table_name);
             std::string string_values;
             for (auto itr = m_list.cbegin(); itr != m_list.cend() ; ++itr) {
-                if(itr->first == "_id")
+                if(itr->alias == "_id" && skip_id)
                     continue;
-                result.append("[" + itr->first + "]");
+                result.append("[" + itr->alias + "]");
+                auto val = nlohmann::json::parse(itr->value);
                 if(use_values){
                     std::string value;
-                    if(itr->second.is_string())
-                        value = itr->second.get<std::string>();
-                    else if(itr->second.is_number_float())
-                        value = std::to_string(itr->second.get<double>());
-                    else if(itr->second.is_number_integer())
-                        value = std::to_string(itr->second.get<int>());
+                    if(val.is_string())
+                        value = val.get<std::string>();
+                    else if(val.is_number_float())
+                        value = std::to_string(val.get<double>());
+                    else if(val.is_number_integer())
+                        value = std::to_string(val.get<long long>());
 
                     if(value.empty())
                         string_values.append("''");
@@ -519,6 +643,18 @@ namespace arcirk::database::builder {
             result.append(string_values);
             result.append(")");
 
+            return *this;
+        }
+
+        query_builder& remove(){
+            queryType = Delete;
+            result = "delete ";
+            return *this;
+        }
+
+        query_builder& union_all(const query_builder& nestedQuery){
+            result.append("\nunion all\n");
+            result.append(nestedQuery.prepare());
             return *this;
         }
 
@@ -577,6 +713,11 @@ namespace arcirk::database::builder {
             st.execute(true);
         }
 
+        static void execute(const std::string& query_text, soci::session& sql){
+            soci::statement st = (sql.prepare << query_text);
+            st.execute(true);
+        }
+
         template<typename T>
         static T get_value(soci::row const& row, const std::size_t& column_index){
             //не знаю как правильно проверить на null поэтому вот так ...
@@ -585,6 +726,19 @@ namespace arcirk::database::builder {
             }catch (...){
                 return {};
             }
+        }
+
+        template<typename T>
+        std::vector<T> rows_to_array(soci::session& sql){
+            if(!is_valid())
+                return std::vector<T>{};
+            soci::rowset<T> rs = (sql.prepare << result);
+            std::vector<T> m_vec;
+            for (auto it = rs.begin(); it != rs.end(); it++) {
+                T user_data = *it;
+                m_vec.emplace_back(user_data);
+            }
+            return m_vec;
         }
 
         static void execute(const std::string& query_text, soci::session& sql, json& result_table, const std::vector<std::string>& column_ignore = {}){
@@ -665,6 +819,8 @@ namespace arcirk::database::builder {
 
         }
 #endif
+
+
         bool is_valid(){
             return !result.empty();
         }
@@ -675,9 +831,153 @@ namespace arcirk::database::builder {
             table_name_ = "";
         }
 
+#ifdef IS_USE_QT_LIB
+        template<typename T>
+        std::vector<T> rows_to_array(QSqlDatabase& sql){
+            if(!is_valid())
+                return std::vector<T>{};
+            QSqlQuery rs(QString::fromStdString(result), sql);
+            std::vector<T> m_vec;
+            while (rs.next()) {
+                T user_data = T();
+                QSqlRecord row = rs.record();
+                nlohmann::json j_row{};
+                for (int i = 0; i < row.count(); ++i) {
+                    std::string column_name = row.fieldName(i).toStdString();
+                    QVariant val = row.field(i).value();
+
+                    if(val.userType() == QMetaType::QString)
+                        j_row[column_name] = val.toString().toStdString();
+                    else if(val.userType() == QMetaType::Double)
+                        j_row[column_name] = val.toDouble();
+                    else if(val.userType() == QMetaType::Int)
+                        j_row[column_name] = val.toInt();
+                    else if(val.userType() == QMetaType::LongLong)
+                        j_row[column_name] = val.toLongLong();
+                    else if(val.userType() == QMetaType::ULongLong)
+                        j_row[column_name] = val.toULongLong();
+                }
+                try {
+                    user_data = pre::json::from_json<T>(j_row);
+                } catch (...) {
+                }
+                m_vec.emplace_back(user_data);
+            }
+            return m_vec;
+        }
+
+        static inline nlohmann::json data_synchronization_get_object(const std::string& table_name, const std::string& ref, QSqlDatabase& sql){
+
+            using namespace arcirk::database;
+
+            auto query = builder::query_builder();
+
+            nlohmann::json j_table = table_name;
+            nlohmann::json j_object{};
+            auto o_table = j_table.get<database::tables>();
+            if(o_table == database::tbDocuments){
+                std::vector<database::documents> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                     true).rows_to_array<database::documents>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object["object"]["StandardAttributes"] = pre::json::to_json<database::documents>(r);
+
+                    query.clear();
+                    std::vector<database::document_table> m_vec_table = query.select({"*"}).from(
+                            arcirk::enum_synonym(database::tables::tbDocumentsTables)).where({{"parent", ref}},
+                                                                                             true).rows_to_array<database::document_table>(
+                            sql);
+                    nlohmann::json n_json_table{};
+                    foreach (const auto itr , m_vec_table) {
+                        n_json_table += pre::json::to_json<database::document_table>(itr);
+                    }
+                    j_object["object"]["TabularSections"] = n_json_table;
+
+                }
+            }else if(o_table == database::tbDevices){
+                std::vector<database::devices> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                   true).rows_to_array<database::devices>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object ={
+                            {"object", {"StandardAttributes", pre::json::to_json<database::devices>(r)}}
+                    };
+                }
+            }else if(o_table == database::tbMessages){
+                std::vector<database::messages> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                    true).rows_to_array<database::messages>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object ={
+                            {"object", {"StandardAttributes" ,pre::json::to_json<database::messages>(r)}}
+                    };
+                }
+            }else if(o_table == database::tbOrganizations){
+                std::vector<database::organizations> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                         true).rows_to_array<database::organizations>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object ={
+                            {"object", {"StandardAttributes" ,pre::json::to_json<database::organizations>(r)}}
+                    };
+                }
+            }else if(o_table == database::tbPriceTypes){
+                std::vector<database::price_types> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                       true).rows_to_array<database::price_types>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object ={
+                            {"object", {"StandardAttributes" ,pre::json::to_json<database::price_types>(r)}}
+                    };
+                }
+            }else if(o_table == database::tbSubdivisions){
+                std::vector<database::subdivisions> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                        true).rows_to_array<database::subdivisions>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object ={
+                            {"object", {"StandardAttributes" ,pre::json::to_json<database::subdivisions>(r)}}
+                    };
+                }
+            }else if(o_table == database::tbWarehouses){
+                std::vector<database::warehouses> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                      true).rows_to_array<database::warehouses>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object ={
+                            {"object", {"StandardAttributes" ,pre::json::to_json<database::warehouses>(r)}}
+                    };
+                }
+            }else if(o_table == database::tbWorkplaces){
+                std::vector<database::workplaces> m_vec = query.select({"*"}).from(table_name).where({{"ref", ref}},
+                                                                                                      true).rows_to_array<database::workplaces>(
+                        sql);
+                if(!m_vec.empty()){
+                    auto r = m_vec[0];
+                    j_object ={
+                            {"object", {"StandardAttributes" ,pre::json::to_json<database::workplaces>(r)}}
+                    };
+                }
+            }else
+                throw NativeException("Сериализация выбранной таблицы не поддерживается");
+
+            j_object["table_name"] = table_name;
+
+            return j_object;
+        }
+#endif
+
     private:
         std::string result;
-        std::vector<std::pair<std::string, json>> m_list;
+       // std::vector<std::pair<std::string, nlohmann::json >> m_list;
+        std::vector<sql_value> m_list;
         sql_query_type queryType;
         sql_database_type databaseType;
         std::string table_name_;
@@ -685,6 +985,5 @@ namespace arcirk::database::builder {
 
 
 }
-
 
 #endif // QUERY_BUILDER_HPP

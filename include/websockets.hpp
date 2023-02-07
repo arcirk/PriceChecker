@@ -11,6 +11,8 @@
 #include <QTimer>
 #include "qjsontablemodel.h"
 #include <QtSql>
+#include <QThread>
+#include "SyncData.h"
 
 typedef std::function<void()> async_await;
 
@@ -72,6 +74,15 @@ public:
             m_reconnect->start(1000 * 60);
     };
 
+    Q_INVOKABLE void startSynchronize(){
+        if(!wsSettings)
+            return;
+        if (m_started){
+
+            m_tmr_synchronize->start(10 * 1000 * 60);
+        }
+    };
+
     Q_INVOKABLE void getDocuments();
     Q_INVOKABLE void getDocumentInfo(const QString& ref);
     Q_INVOKABLE void getDocumentContent(const QString& ref);
@@ -92,10 +103,19 @@ private:
     bool m_started;
 
     QTimer * m_reconnect;
+    QTimer * m_tmr_synchronize;
 
     QQueue<async_await> m_async_await;
 
+    bool is_offline;
+
     QSqlDatabase sqlDatabase;
+    QMap<QString, arcirk::server::server_response> sqlResult;
+
+    QThread syncOperatiions;
+    SyncData * syncData;
+
+    void initSyncData();
 
     static QString get_sha1(const QByteArray& p_arg);
 
@@ -121,6 +141,7 @@ private:
     };
 
     void synchronizeBase();
+    void synchronizeBaseNext(const arcirk::server::server_response& resp);
 
 private slots:
 
@@ -129,6 +150,7 @@ private slots:
     void onTextMessageReceived(const QString &message);
     void onError(QAbstractSocket::SocketError error);
     void onReconnect();
+    void onSynchronize();
 
 signals:
 //    void typePriceRefChanged();
@@ -145,6 +167,7 @@ signals:
 
     void notify(const QString &message);
 
+    void readDocument(const QString& jsonModel);
     void readDocuments(const QString& jsonModel);
     void readDocumentTable(const QString& jsonModel);
 };

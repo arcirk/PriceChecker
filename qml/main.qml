@@ -186,7 +186,7 @@ ApplicationWindow {
             popupMessage.showError(what, err);
         }
         onConnectionChanged: function(state){
-            //btnConnectionState.icon.source = state ?  "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
+
             mainToolBar.updateIcons(state)
             if(state){
                 popupMessage.show("Успешное подключение к серверу");
@@ -198,6 +198,9 @@ ApplicationWindow {
 
             if(!state)
                 wsClient.startReconnect();
+
+            btnSync.icon.source = state ? "qrc:/img/cloud_sync.svg" : "qrc:/img/sync_problem.svg"
+            btnSync.enabled = state
 
         }
 
@@ -325,7 +328,21 @@ ApplicationWindow {
             }
             width: parent.width
             Row{
-                //Layout.alignment: Qt.AlignRigh
+                ToolButton{
+                    id: btnSync
+                    icon.source: "qrc:/img/cloud_sync.svg"
+
+                    onClicked: {
+//                        if(!wsClient.isStarted()){
+//                            wsClient.setUrl(wsSettings.url());
+//                            wsClient.open(wsSettings);
+//                        }else{
+//                            wsClient.close();
+//                        }
+                        attachFocus.focus = true;
+                    }
+
+                }
                 ToolButton{
                     id: btnConnectionState
                     icon.source: "qrc:/img/lan_check_offline.png"

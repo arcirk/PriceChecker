@@ -41,5 +41,7 @@
         <file>qml/DocumentsDelegate.qml</file>
         <file>qml/ChildDelegate.qml</file>
         <file>qml/ListItemDelegate.qml</file>
+        <file>img/cloud_sync.svg</file>
+        <file>img/sync_problem.svg</file>
     </qresource>
 </RCC>

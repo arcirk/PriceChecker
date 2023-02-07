@@ -20,6 +20,7 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, ref)
         (std::string, cache)
         (std::string, server)
+        (int, version)
 
 );
 
@@ -37,6 +38,7 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, warehouse)
         (std::string, subdivision)
         (std::string, organization)
+        (int, version)
 );
 
 BOOST_FUSION_DEFINE_STRUCT(
@@ -60,7 +62,19 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, xml_type)
         (int, version)
         (std::string, device_id)
+        (std::string, workplace)
 
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), pending_operations,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, cache)
+        (std::string, operation)
+        (std::string, parent)
 );
 
 BOOST_FUSION_DEFINE_STRUCT(
@@ -74,6 +88,18 @@ BOOST_FUSION_DEFINE_STRUCT(
         (double, quantity)
         (std::string, barcode)
         (std::string, parent)
+        (int, version)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), nomenclature,
+        (int, _id)
+        (std::string, first) // Наименование
+        (std::string, second) // Артикул
+        (std::string, ref)
+        (std::string, cache) // Все остальные реквизиты
+        (std::string, parent)
+        (int, version)
 );
 
 BOOST_FUSION_DEFINE_STRUCT(
@@ -84,6 +110,60 @@ BOOST_FUSION_DEFINE_STRUCT(
         (int, notnull)
         (std::string, dflt_value)
         (int, bk)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), messages,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, message)
+        (std::string, token)
+        (int, date)
+        (std::string, content_type)
+        (int, unread_messages)
+        (int, version)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), organizations,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, cache)
+        (int, version)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), subdivisions,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, cache)
+        (int, version)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), warehouses,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, cache)
+        (int, version)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), price_types,
+        (int, _id)
+        (std::string, first)
+        (std::string, second)
+        (std::string, ref)
+        (std::string, cache)
+        (int, version)
 );
 
 namespace arcirk::database{
@@ -102,6 +182,7 @@ namespace arcirk::database{
         tbDocumentsTables,
         tbNomenclature,
         tbDatabaseConfig,
+        tbPendingOperations,
         tables_INVALID=-1,
     };
 
@@ -120,6 +201,7 @@ namespace arcirk::database{
         {tbDocumentsTables, "DocumentsTables"}  ,
         {tbNomenclature, "Nomenclature"}  ,
         {tbDatabaseConfig, "DatabaseConfig"}  ,
+        {tbPendingOperations, "PendingOperations"}  ,
     })
 
     enum views{
@@ -160,7 +242,8 @@ namespace arcirk::database{
                                           "    date            INTEGER NOT NULL DEFAULT(0),\n"
                                           "    xml_type        TEXT      DEFAULT \"\",\n"
                                           "    version         INTEGER NOT NULL DEFAULT(0),\n"
-                                          "    device_id       TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000]\n"
+                                          "    device_id       TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
+                                          "    workplace       TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000]\n"
                                           ");";
 
     const std::string document_table_table_ddl = "CREATE TABLE DocumentsTables (\n"
@@ -173,7 +256,8 @@ namespace arcirk::database{
                                           "    price           DOUBLE DEFAULT (0),\n"
                                           "    quantity        DOUBLE DEFAULT (0),\n"
                                           "    barcode         TEXT      DEFAULT \"\",\n"
-                                          "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000]\n"
+                                          "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
+                                          "    version         INTEGER NOT NULL DEFAULT(0)\n"
                                           ");";
 
     const std::string nomenclature_table_ddl = "CREATE TABLE Nomenclature (\n"
@@ -183,7 +267,8 @@ namespace arcirk::database{
                                                  "    ref             TEXT (36) UNIQUE\n"
                                                  "                             NOT NULL,\n"
                                                  "    cache           TEXT      DEFAULT \"\",\n"
-                                                 "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000]\n"
+                                                 "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
+                                                 "    version         INTEGER NOT NULL DEFAULT(0)\n"
                                                  ");";
 
     const std::string database_config_table_ddl = "CREATE TABLE DatabaseConfig (\n"
@@ -195,6 +280,15 @@ namespace arcirk::database{
                                                "    version         INTEGER  DEFAULT(0)  NOT NULL\n"
                                                ");";
 
+    const std::string pending_operations_table_ddl = "CREATE TABLE PendingOperations (\n"
+                                               "    _id             INTEGER   PRIMARY KEY AUTOINCREMENT,\n"
+                                               "    [first]         TEXT,\n"
+                                               "    second          TEXT,\n"
+                                               "    ref             TEXT (36) UNIQUE\n"
+                                               "                             NOT NULL,\n"
+                                               "    operation       TEXT,\n"
+                                               "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000]\n"
+                                               ");";
 
     static inline nlohmann::json table_default_json(arcirk::database::tables table) {
 
@@ -273,6 +367,18 @@ namespace arcirk::database{
                 tbl.ref = arcirk::uuids::nil_string_uuid();
                 tbl.device_id = arcirk::uuids::nil_string_uuid();
                 tbl.date = 0;
+                return pre::json::to_json(tbl);
+            }
+            case tbPendingOperations: {
+                auto tbl = pending_operations();
+                tbl.ref = arcirk::uuids::nil_string_uuid();
+                tbl.parent = arcirk::uuids::nil_string_uuid();
+                return pre::json::to_json(tbl);
+            }
+            case tbNomenclature: {
+                auto tbl = nomenclature();
+                tbl.ref = arcirk::uuids::nil_string_uuid();
+                tbl.parent = arcirk::uuids::nil_string_uuid();
                 return pre::json::to_json(tbl);
             }
             case tables_INVALID:{

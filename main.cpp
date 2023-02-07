@@ -69,7 +69,18 @@ void verifyDatabase(){
     using namespace arcirk::database;
 
     QSqlDatabase sql = QSqlDatabase::addDatabase("QSQLITE");
+
+#ifndef Q_OS_WINDOWS
     sql.setDatabaseName("pricechecker.sqlite");
+#else
+    auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir dir(path);
+    if(!dir.exists())
+        dir.mkpath(path);
+
+    auto fileName= path + "/pricechecker.sqlite";
+    sql.setDatabaseName(fileName);
+#endif
 
     if (!sql.open()) {
         qDebug() << sql.lastError().text();

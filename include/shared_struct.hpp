@@ -64,6 +64,7 @@ namespace arcirk::server{
         SetNewDeviceId, //Явная установка идентификатора на устройствах где не возможно его получить
         ObjectSetToDatabase, //Синхронизация объекта 1С с базой
         ObjectGetFromDatabase, //Получить объект типа 1С из базы данных для десериализации
+        SyncGetDiscrepancyInData, //Получить расхождения в данных между базами на клиенте и на Сервере
         CMD_INVALID=-1,
     };
 
@@ -85,6 +86,7 @@ namespace arcirk::server{
          {SetNewDeviceId, "SetNewDeviceId"}    ,
          {ObjectSetToDatabase, "ObjectSetToDatabase"}    ,
          {ObjectGetFromDatabase, "ObjectGetFromDatabase"}    ,
+         {SyncGetDiscrepancyInData, "SyncGetDiscrepancyInData"}    ,
     })
 
 }

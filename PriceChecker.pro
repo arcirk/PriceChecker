@@ -9,6 +9,7 @@ SOURCES += \
 #        src/httpservice.cpp \
 #        src/serverresponse.cpp \
 #        src/websocket.cpp \
+    src/SyncData.cpp \
     src/barcode_info.cpp \
     src/barcode_parser.cpp \
     src/httpservice.cpp \
@@ -36,6 +37,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
+    include/SyncData.h \
     include/barcode_info.hpp \
     include/barcode_parser.hpp \
     include/database_struct.hpp \
@@ -73,4 +75,4 @@ contains(ANDROID_TARGET_ARCH,armeabi-v7a) {
 }
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
-
+DEFINES += IS_USE_QT_LIB

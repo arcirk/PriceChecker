@@ -53,6 +53,7 @@ Popup {
             font.pixelSize: fontPixelSize
             text: "Сервер:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
+            padding: 0
         }
 
         TextField{
@@ -63,7 +64,7 @@ Popup {
             Material.accent: Material.Blue
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            //enabled: !wsClient.isStarted();
+            padding: 0
             onEditingFinished: {
                 wsSettings.setUrl(txtServer.text);
             }
@@ -77,6 +78,7 @@ Popup {
             font.pixelSize: fontPixelSize
             text: "Пользователь:"
             color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
+            padding: 0
         }
 
         TextField{
@@ -87,7 +89,7 @@ Popup {
             Material.accent: Material.Blue
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            //enabled: !wsClient.isStarted();
+            padding: 0
             onEditingFinished: {
                 wsSettings.userName = txtUser.text;
                 wsSettings.httpUser = txtUser.text;
@@ -107,6 +109,8 @@ Popup {
 
         RowLayout{
             Layout.fillWidth: true
+            spacing: 0
+            Layout.margins: 0
             TextField{
                 id: txtPass
                 font.pixelSize: fontPixelSize
@@ -146,6 +150,8 @@ Popup {
                 enabled: pwdEditPass.checked
                 Material.accent: Material.Blue
                 Layout.alignment: Qt.AlignRight
+                padding: 0
+                Layout.topMargin: 0
                 onCheckedChanged: {
                     pwdViev.icon.source = pwdViev.checked ? "qrc:/img/viewPwd.png" : "qrc:/img/viewPwd1.png"
                 }
@@ -159,7 +165,8 @@ Popup {
                 checkable: true
                 Material.accent: Material.Blue
                 Layout.alignment: Qt.AlignRight
-                //enabled: !wsClient.isStarted();
+                padding: 0
+                Layout.topMargin: 0
                 onCheckedChanged: {
                     txtPass.enabled = pwdEditPass.checked
                     if(pwdEditPass.checked){
@@ -241,6 +248,7 @@ Popup {
             font.pixelSize: fontPixelSize
             Layout.fillWidth: true
             Material.accent: Material.Blue
+            padding: 0
             contentItem: Label {
                 text: showImage.text
                 font: showImage.font
@@ -266,6 +274,7 @@ Popup {
             font.pixelSize: fontPixelSize
             Layout.fillWidth: true
             Material.accent: Material.Blue
+            padding: 0
             contentItem: Label {
                 text: isKeyboardMode.text
                 font: isKeyboardMode.font
@@ -291,6 +300,7 @@ Popup {
             font.pixelSize: fontPixelSize
             Layout.fillWidth: true
             Material.accent: Material.Blue
+            padding: 0
             contentItem: Label {
                 text: isPriceCheckerMode.text
                 font: isPriceCheckerMode.font
@@ -318,6 +328,7 @@ Popup {
             font.pixelSize: fontPixelSize
             Layout.fillWidth: true
             Material.accent: Material.Blue
+            padding: 0
             contentItem: Label {
                 text: isAutoConnect.text
                 font: isAutoConnect.font

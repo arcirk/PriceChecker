@@ -1,5 +1,8 @@
 #include "include/websockets.hpp"
 #include "include/database_struct.hpp"
+#include "include/query_builder.hpp"
+#include "include/verify_database.hpp"
+
 //#include <QNetworkInterface>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -53,13 +56,31 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
 
     m_reconnect = new QTimer(this);
     connect(m_reconnect,SIGNAL(timeout()),this,SLOT(onReconnect()));
+    m_tmr_synchronize = new QTimer(this);
+    connect(m_tmr_synchronize,SIGNAL(timeout()),this,SLOT(onSynchronize()));
+
+    syncData = new SyncData(this);
 
     sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
+#ifndef Q_OS_WINDOWS
     sqlDatabase.setDatabaseName("pricechecker.sqlite");
+    syncData->setDatabaseFileName("pricechecker.sqlite");
+#else
+    auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir dir(path);
+    if(!dir.exists())
+        dir.mkpath(path);
+
+    auto fileName= path + "/pricechecker.sqlite";
+    sqlDatabase.setDatabaseName(fileName);
+    syncData->setDatabaseFileName(fileName);
+#endif
 
     if (!sqlDatabase.open()) {
-        qDebug() << sqlDatabase.lastError().text();
+        qCritical() << sqlDatabase.lastError().text();
     }
+
+    is_offline = true;
 }
 
 WebSocketClient::WebSocketClient(QObject *parent)
@@ -77,13 +98,27 @@ WebSocketClient::WebSocketClient(QObject *parent)
 
     m_reconnect = new QTimer(this);
     connect(m_reconnect,SIGNAL(timeout()),this,SLOT(onReconnect()));
+    m_tmr_synchronize = new QTimer(this);
+    connect(m_tmr_synchronize,SIGNAL(timeout()),this,SLOT(onSynchronize()));
 
     sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
+#ifndef Q_OS_WINDOWS
     sqlDatabase.setDatabaseName("pricechecker.sqlite");
+#else
+    auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir dir(path);
+    if(!dir.exists())
+        dir.mkpath(path);
+
+    auto fileName= path + "/pricechecker.sqlite";
+    sqlDatabase.setDatabaseName(fileName);
+#endif
 
     if (!sqlDatabase.open()) {
         qDebug() << sqlDatabase.lastError().text();
     }
+
+    is_offline = true;
 }
 
 WebSocketClient::~WebSocketClient()
@@ -236,6 +271,11 @@ void WebSocketClient::onReconnect()
     }
 }
 
+void WebSocketClient::onSynchronize()
+{
+
+}
+
 QString WebSocketClient::generateHash(const QString &usr, const QString &pwd)
 {
     return get_hash(usr, pwd);
@@ -263,6 +303,7 @@ void WebSocketClient::parse_response(const QString &resp)
                 //поочередное выполнение
                 m_async_await.append(std::bind(&WebSocketClient::updateHttpServiceConfiguration, this));
                 m_async_await.append(std::bind(&WebSocketClient::get_workplace_options, this));
+                m_async_await.append(std::bind(&WebSocketClient::synchronizeBase, this));
                 asyncAwait();
             }else{
                 emit displayError("SetClientParam", "Ошибка авторизации");
@@ -278,6 +319,8 @@ void WebSocketClient::parse_response(const QString &resp)
         }else if(msg.command == arcirk::enum_synonym(arcirk::server::server_commands::CommandToClient)){
             //qDebug() << __FUNCTION__ << "CommandToClient";
             parse_command_to_client(msg.receiver, msg.sender, msg.param);
+        }else if(msg.command == arcirk::enum_synonym(arcirk::server::server_commands::SyncGetDiscrepancyInData)){
+            synchronizeBaseNext(msg);
         }
     } catch (std::exception& e) {
         qCritical() << __FUNCTION__ << e.what();
@@ -369,6 +412,7 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
         auto param = nlohmann::json::parse(p);
         std::string table_name = param.value("table_name", "");
         std::string query_type = param.value("query_type", "");
+        std::string operation = param.value("operation", "");
 
         qDebug() << __FUNCTION__ << "table_name:" << table_name.c_str() << "query_type: " << query_type.c_str();
 
@@ -405,8 +449,11 @@ void WebSocketClient::parse_exec_query_result(arcirk::server::server_response &r
                 }
             }else if(tb_name.get<arcirk::database::tables>() == arcirk::database::tables::tbDocuments){
                 if(query_type == "select"){
-                    QString table = QByteArray::fromBase64(resp.result.data());
-                    emit readDocuments(table);
+                    if(operation.empty()){
+                        QString table = QByteArray::fromBase64(resp.result.data());
+                        emit readDocuments(table);
+                    }
+
                 }else if(query_type == "update_or_insert")
                     getDocuments();
             }else if(tb_name.get<arcirk::database::tables>() == arcirk::database::tables::tbDocumentsTables){
@@ -481,16 +528,153 @@ void WebSocketClient::get_workplace_view_options()
 
 void WebSocketClient::synchronizeBase()
 {
-    if(!isStarted())
+    if(!isStarted()){
+        asyncAwait();
+        return;
+    }
+
+    //Получаем список документов с севрвера
+    QUuid devId = QUuid::fromString(wsSettings->deviceId());
+    if(devId.isNull()){
+        qCritical() << __FUNCTION__ << "Не верный идентификатор устройства!";
+        asyncAwait();
+        return;
+    }
+
+    if(!sqlDatabase.isOpen()){
+        asyncAwait();
+        return;
+    }
+
+    //1.) Получаем список локальных документов
+    QSqlQuery rs;
+    rs.exec("select ref,version from Documents");
+    nlohmann::json t_docs{};
+    while (rs.next()) {
+        t_docs += nlohmann::json{
+            {"ref", rs.value("ref").toString().toStdString()},
+            {"version", rs.value("version").toInt()}
+        };
+    };
+
+//    nlohmann::json query_param{};
+//    query_param["base64_param"] = t_docs;
+
+//    nlohmann::json query_param = {
+//        {"table_name", "DevicesView"},
+//        {"query_type", "select"},
+//        {"where_values", nlohmann::json({
+//             {"ref", devId.toString(QUuid::StringFormat::WithoutBraces).toStdString()}
+//         })}
+//    };
+
+    std::string base64_param = QByteArray::fromStdString(t_docs.dump()).toBase64().toStdString();
+
+    using namespace arcirk::database;
+
+    send_command(arcirk::server::server_commands::SyncGetDiscrepancyInData, {
+                     {"base64_param", base64_param},
+                     {"device_id", wsSettings->deviceId().toStdString()},
+                     {"table_name", arcirk::enum_synonym(tables::tbDocuments)}
+                 });
+
+    asyncAwait();
+}
+
+void WebSocketClient::synchronizeBaseNext(const arcirk::server::server_response &resp)
+{
+    qDebug() << __FUNCTION__;
+
+    if(resp.result == "error")
         return;
 
-    //Приоретет - устройство
-    //Исходим из того что все изменения могут производится только на устройстве
-    //На сервере - кеш
-    //Если на сервере нет документа - выгружается
-    //Если на сервере есть документ но версия его различная от локальной, на сервер выгружается версия с устройства
-    //
+    using namespace arcirk::database;
 
+    if(!sqlDatabase.isOpen())
+        return;
+
+    auto result = nlohmann::json::parse(QByteArray::fromBase64(resp.result.data()).toStdString());
+    auto objects = result.value("objects", nlohmann::json{});
+    auto comparison_table = result.value("comparison_table", nlohmann::json{});
+    std::map<std::string, std::pair<int,int>> m_ext_table;
+    std::vector<std::string> m_vec_new_documents;
+    if (comparison_table.is_array() && !comparison_table.empty()) {
+        for (auto itr = comparison_table.begin(); itr != comparison_table.end(); ++itr) {
+            nlohmann::json r = *itr;
+            m_ext_table.emplace(r["ref"], std::pair<int,int>(r["ver1"], r["ver2"]));
+            if(r["ver1"] < r["ver2"]){
+                m_vec_new_documents.push_back(r["ref"]);
+            }
+        }
+    }
+
+    if(objects.is_array()){
+        //sqlDatabase.transaction();
+        for (auto const & itr : objects) {
+            if(itr.is_object()){
+                auto items = itr.items();
+                for (auto const & itr : items) {
+                    //qDebug() << QString::fromStdString(itr.key());
+                    auto std_attr = pre::json::from_json<documents>(itr.value()["object"]["StandardAttributes"]);
+                    auto query = builder::query_builder();
+                    query.use(pre::json::to_json(std_attr));
+                    QSqlQuery q;
+                    auto d_itr = m_ext_table.find(std_attr.ref);
+                    QString query_str;
+                    if(d_itr != m_ext_table.end()){
+                        if(d_itr->second.second != -1){
+                            query_str = QString::fromStdString(query.remove().from(arcirk::enum_synonym(tbDocuments)).where(nlohmann::json{
+                                                                                                                                        {"ref", std_attr.ref}
+                                                                                                                                    }, true).prepare());
+                            q.exec(query_str);
+                            if(q.lastError().isValid())
+                                qCritical() << q.lastError().text();
+                        }
+
+                    }
+
+                    query_str = QString::fromStdString(query.insert(arcirk::enum_synonym(tbDocuments), true).prepare());
+                    //qDebug() << qPrintable(query_str);
+                    q.exec(query_str);
+                    if(q.lastError().isValid())
+                        qCritical() << q.lastError().text();
+
+                    auto m_rows = itr.value()["object"]["TabularSections"];
+                    if(m_rows.is_array()){
+                        for (auto const & tbl : m_rows) {
+                            query.clear();
+                            if(tbl.is_object()){
+                                query.use(tbl);
+                                query_str = QString::fromStdString(query.remove().from(arcirk::enum_synonym(tbDocumentsTables)).where(nlohmann::json{
+                                                                                                                                          {"parent", std_attr.ref}
+                                                                                                                                      }, true).prepare());
+                                q.exec(query_str);
+                                if(q.lastError().isValid())
+                                    qCritical() << q.lastError().text();
+                                query_str = QString::fromStdString(query.insert(arcirk::enum_synonym(tbDocumentsTables), true).prepare());
+                                q.exec(query_str);
+                                if(q.lastError().isValid())
+                                    qCritical() << q.lastError().text();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        //sqlDatabase.commit();
+    }else if(objects.is_object()){
+        auto items = objects.items();
+        for (auto const & itr : items) {
+            qDebug() << QString::fromStdString(itr.key());
+        }
+    }
+
+    //Выгружаем на севрвер локальные документы с версией выше чем на сервере
+    if(m_vec_new_documents.size() > 0){
+        foreach (auto const& itr, m_vec_new_documents) {
+
+        }
+    }
 }
 
 QString WebSocketClient::get_hash(const QString& first, const QString& second){
@@ -501,6 +685,7 @@ QString WebSocketClient::get_hash(const QString& first, const QString& second){
 
 void WebSocketClient::updateHttpServiceConfiguration()
 {
+    qDebug() << __FUNCTION__;
     if(isStarted()){
         send_command(arcirk::server::server_commands::HttpServiceConfiguration);
     }
@@ -728,51 +913,98 @@ void WebSocketClient::checkConnection()
 
 void WebSocketClient::getDocuments()
 {
-    nlohmann::json param = {
-        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
-        {"query_type", "select"},
-        {"values", nlohmann::json{}},
-        {"where_values", nlohmann::json{{"device_id", wsSettings->deviceId().toStdString()}}}
-    };
+    if(!is_offline){
+        nlohmann::json param = {
+            {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+            {"query_type", "select"},
+            {"values", nlohmann::json{}},
+            {"where_values", nlohmann::json{{"device_id", wsSettings->deviceId().toStdString()}}}
+        };
 
-    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
-    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
-                     {"query_param", query_param}
-                 });
+        std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", query_param}
+                     });
+    }else{
+        if(!sqlDatabase.isOpen())
+            return;
+
+        using namespace arcirk::database;
+        nlohmann::json result{};
+        arcirk::database::execute(
+                    builder::query_builder().select(nlohmann::json{"*"})
+                    .from(arcirk::enum_synonym(tables::tbDocuments))
+                    .where(nlohmann::json{
+                                               {"device_id", wsSettings->deviceId().toStdString()}
+                                           }, true).prepare(), sqlDatabase, result);
+        emit readDocuments(QString::fromStdString(result.dump()));
+    }
+
 }
 
 void WebSocketClient::getDocumentInfo(const QString &ref)
 {
-    nlohmann::json param = {
-        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
-        {"query_type", "select"},
-        {"values", nlohmann::json{}},
-        {"where_values", nlohmann::json{
-             {"ref", ref.toStdString()}
-         }}
-    };
+    if(!is_offline){
+        nlohmann::json param = {
+            {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+            {"query_type", "select"},
+            {"values", nlohmann::json{}},
+            {"where_values", nlohmann::json{
+                 {"ref", ref.toStdString()}
+             }}
+        };
 
-    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
-    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
-                     {"query_param", query_param}
-                 });
+        std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", query_param}
+                     });
+    }else{
+        if(!sqlDatabase.isOpen())
+            return;
+
+        using namespace arcirk::database;
+        nlohmann::json result{};
+        arcirk::database::execute(
+                    builder::query_builder().select(nlohmann::json{"*"})
+                    .from(arcirk::enum_synonym(tables::tbDocuments))
+                    .where(nlohmann::json{
+                                               {"ref", ref.toStdString()}
+                                           }, true).prepare(), sqlDatabase, result);
+        emit readDocument(QString::fromStdString(result.dump()));
+    }
 }
 
 void WebSocketClient::getDocumentContent(const QString &ref)
 {
-    nlohmann::json param = {
-        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)},
-        {"query_type", "select"},
-        {"values", nlohmann::json{}},
-        {"where_values", nlohmann::json{
-             {"parent", ref.toStdString()}
-         }}
-    };
+    if(!is_offline){
+        nlohmann::json param = {
+            {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)},
+            {"query_type", "select"},
+            {"values", nlohmann::json{}},
+            {"where_values", nlohmann::json{
+                 {"parent", ref.toStdString()}
+             }}
+        };
 
-    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
-    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
-                     {"query_param", query_param}
-                 });
+        std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", query_param}
+                     });
+    }else{
+        if(!sqlDatabase.isOpen())
+            return;
+
+        using namespace arcirk::database;
+        nlohmann::json result{};
+        arcirk::database::execute(
+                    builder::query_builder().select(nlohmann::json{"*"})
+                    .from(arcirk::enum_synonym(tables::tbDocumentsTables))
+                    .where(nlohmann::json{
+                                               {"parent", ref.toStdString()}
+                                           }, true).prepare(), sqlDatabase, result);
+
+        emit readDocumentTable(QString::fromStdString(result.dump()));
+    }
 }
 
 QString WebSocketClient::documentDate(const int value) const
@@ -805,29 +1037,60 @@ void WebSocketClient::documentContentUpdate(const QString &barcode, const int qu
     row.first = "Штрихкоды";
     row.second = "Штрихкоды";
 
-    nlohmann::json param = {
-        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)},
-        {"query_type", "update_or_insert"},
-        {"values", pre::json::to_json(row)}
-    };
-
-    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
-    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
-                     {"query_param", query_param}
-                 });
-
-    if(model){
-        auto Index = model->getColumnIndex("barcode");
-        if(Index != -1){
-            auto bIndex = model->findInTable(barcode, Index, false);
-            if(!bIndex.isValid()){
-                model->addRow(QString::fromStdString(pre::json::to_json(row).dump()));
-            }else{
-                model->updateRow(barcode, quantity, bIndex.row());
-            }
-            model->reset();
+    auto Index = model->getColumnIndex("barcode");
+    auto IndexVer = model->getColumnIndex("version");
+    int version = 0;
+    QModelIndex bIndex{};
+    if(Index != -1){
+        bIndex = model->findInTable(barcode, Index, false);
+        if(bIndex.isValid()){
+            version = model->data(bIndex, Qt::UserRole + IndexVer).toInt() + 1;
         }
+    }
 
+    row.version = version;
+
+    if(!is_offline){
+        nlohmann::json param = {
+            {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)},
+            {"query_type", "update_or_insert"},
+            {"values", pre::json::to_json(row)}
+        };
+
+        std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", query_param}
+                     });
+    }else{
+        if(!sqlDatabase.isOpen())
+            return;
+
+        using namespace arcirk::database;
+
+        int count = -0;
+        QSqlQuery rs(builder::query_builder().row_count().from(arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)).where(nlohmann::json{{"ref", row.ref}}, true).prepare().c_str());
+        while (rs.next()) {
+            count++;
+        }
+        rs.clear();
+        auto br = builder::query_builder();
+        br.use(pre::json::to_json(row));
+        if(count > 0){
+            rs.exec(br.update(arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables), true).where(nlohmann::json{{"ref", row.ref}}, true).prepare().c_str());
+        }else{
+            rs.exec(br.insert(arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables), true).prepare().c_str());
+        }
+    }
+
+
+    if(Index != -1){
+        auto bIndex = model->findInTable(barcode, Index, false);
+        if(!bIndex.isValid()){
+            model->addRow(QString::fromStdString(pre::json::to_json(row).dump()));
+        }else{
+            model->updateRow(barcode, quantity, bIndex.row());
+        }
+        model->reset();
     }
 }
 
@@ -887,4 +1150,11 @@ void WebSocketClient::documentUpdate(const QString &number, const QString &date,
 QString WebSocketClient::documentGenerateNewNumber(const int id)
 {
     return QString("%1").arg(id, 9, 'g', -1, '0');
+}
+
+void WebSocketClient::initSyncData()
+{
+    connect(&syncOperatiions, &QThread::started, &syncData, &SyncData::run);
+    connect(&syncData, &SyncData::finished, &syncOperatiions, &QThread::terminate);
+    syncData.moveToThread(&syncOperatiions);
 }

@@ -29,6 +29,7 @@ namespace arcirk::database{
             case tbNomenclature: return QString::fromStdString(nomenclature_table_ddl);
             case tbDatabaseConfig: return QString::fromStdString(database_config_table_ddl);
             case tbDevicesType:  return "";
+            case tbPendingOperations: return QString::fromStdString(pending_operations_table_ddl);
             case tables_INVALID:{
                 break;
             }
@@ -145,19 +146,20 @@ namespace arcirk::database{
 
     static inline std::map<tables, int> get_release_tables_versions(){
         std::map<tables, int> result;
-        result.emplace(tables::tbDatabaseConfig, 1);
-        result.emplace(tables::tbNomenclature, 1);
-        result.emplace(tables::tbDocuments, 1);
-        result.emplace(tables::tbDevices, 1);
-        result.emplace(tables::tbMessages, 1);
-        result.emplace(tables::tbUsers, 1);
-        result.emplace(tables::tbDevicesType, 1);
-        result.emplace(tables::tbDocumentsTables, 1);
-        result.emplace(tables::tbOrganizations, 1);
-        result.emplace(tables::tbPriceTypes, 1);
-        result.emplace(tables::tbSubdivisions, 1);
-        result.emplace(tables::tbWarehouses, 1);
-        result.emplace(tables::tbWorkplaces, 1);
+        result.emplace(tables::tbDatabaseConfig, 2);
+        result.emplace(tables::tbNomenclature, 2);
+        result.emplace(tables::tbDocuments, 2);
+        result.emplace(tables::tbDevices, 2);
+        result.emplace(tables::tbMessages, 2);
+        result.emplace(tables::tbUsers, 2);
+        result.emplace(tables::tbDevicesType, 2);
+        result.emplace(tables::tbDocumentsTables, 2);
+        result.emplace(tables::tbOrganizations, 2);
+        result.emplace(tables::tbPriceTypes, 2);
+        result.emplace(tables::tbSubdivisions, 2);
+        result.emplace(tables::tbWarehouses, 2);
+        result.emplace(tables::tbWorkplaces, 2);
+        result.emplace(tables::tbPendingOperations, 1);
         return result;
     }
 
@@ -175,7 +177,8 @@ namespace arcirk::database{
             tbDocuments,
             tbDocumentsTables,
             tbNomenclature,
-            tbDatabaseConfig
+            tbDatabaseConfig,
+            tbPendingOperations
         };
         return result;
     }
@@ -259,5 +262,62 @@ namespace arcirk::database{
            }
 
        }
+
+    static inline void execute(const std::string& query_text, QSqlDatabase& sql, nlohmann::json& result_table, const std::vector<std::string>& column_ignore = {}){
+
+        using namespace nlohmann;
+
+        QSqlQuery rs(QString::fromStdString(query_text));
+
+
+        json columns = {"line_number"};
+        json roms = {};
+        int line_number = 0;
+
+        while (rs.next())
+        {
+            line_number++;
+            QSqlRecord row = rs.record();
+            json j_row = {{"line_number", line_number}};
+
+            for(int i = 0; i < row.count(); ++i)
+            {
+                //const column_properties & props = row.get_properties(i);
+                std::string column_name = row.fieldName(i).toStdString();
+
+                if((columns.size()) != row.count()){
+                    columns.push_back(column_name);
+                }
+
+                if(std::find(column_ignore.begin(), column_ignore.end(), column_name) != column_ignore.end()){
+                    j_row += {column_name, ""};
+                    continue;
+                }
+
+                QVariant val = row.field(i).value();
+
+                if(val.userType() == QMetaType::QString)
+                    j_row += {column_name, val.toString().toStdString()};
+                else if(val.userType() == QMetaType::Double)
+                    j_row += {column_name, val.toDouble()};
+                else if(val.userType() == QMetaType::Int)
+                    j_row += {column_name, val.toInt()};
+                else if(val.userType() == QMetaType::LongLong)
+                    j_row += {column_name, val.toLongLong()};
+                else if(val.userType() == QMetaType::ULongLong)
+                    j_row += {column_name, val.toULongLong()};
+
+            }
+
+            roms += j_row;
+        }
+
+        result_table = {
+                {"columns", columns},
+                {"rows", roms}
+        };
+
+    }
+
 }
 #endif // VRIFY_DATABASE_HPP
