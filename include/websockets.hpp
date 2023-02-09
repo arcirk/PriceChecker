@@ -61,7 +61,7 @@ public:
 
     Q_INVOKABLE void registerDevice();
 
-    Q_INVOKABLE void get_barcode_information(const QString& barcode, BarcodeInfo* bInfo);
+    Q_INVOKABLE void get_barcode_information(const QString& barcode, BarcodeInfo* bInfo, bool skip_data = false);
 
     Q_INVOKABLE void get_image_data(BarcodeInfo* bInfo);
 
@@ -75,12 +75,9 @@ public:
     };
 
     Q_INVOKABLE void startSynchronize(){
-        if(!wsSettings)
-            return;
-        if (m_started){
-
-            m_tmr_synchronize->start(10 * 1000 * 60);
-        }
+        qDebug() << __FUNCTION__;
+        //ToDo: Добавить в настройки переодиченость запуска.
+        m_tmr_synchronize->start(5 * 1000 * 60);
     };
 
     Q_INVOKABLE void getDocuments();
@@ -115,7 +112,7 @@ private:
     QThread syncOperatiions;
     SyncData * syncData;
 
-    void initSyncData();
+    void syncDataCreateConnections();
 
     static QString get_sha1(const QByteArray& p_arg);
 
@@ -151,6 +148,7 @@ private slots:
     void onError(QAbstractSocket::SocketError error);
     void onReconnect();
     void onSynchronize();
+    void onEndSynchronize(bool isValid, const nlohmann::json& objects);
 
 signals:
 //    void typePriceRefChanged();

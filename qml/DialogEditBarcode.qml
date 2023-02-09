@@ -16,6 +16,8 @@ Popup {
 
     property int fontPixelSize: screenWidth > 1000 ? 20 : 12
 
+    property string uuid: ""
+    property int row: 0
     property alias barcode: txtBarcode.text
     property alias quantity: txtQuantity.text
     property string theme: "Dark"

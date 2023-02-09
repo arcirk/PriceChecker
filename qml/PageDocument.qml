@@ -39,7 +39,7 @@ Page {
             if(q === undefined)
                 q = 0;
 //            if(mIndex.ref !== undefined){
-                wsClient.documentContentUpdate(bInfo.barcode, Number(q) + 1, pageDoc.ref, wsDocumentTable.value(mIndex, Qt.UserRole + indexRef), wsDocumentTable)
+            wsClient.documentContentUpdate(bInfo.barcode, Number(q) + 1, pageDoc.ref, wsDocumentTable.value(mIndex, Qt.UserRole + indexRef), wsDocumentTable)
 //            }else{
 
 //            }
@@ -107,17 +107,25 @@ Page {
 
                         }
                         onClicked: function(row){
-//                            console.log("onSelectItem " + row)
-//                            listView.selectedRow(wsDocuments.index(row,0))
+                            console.log("onSelectItem " + row)
+                            listView.selectedRow(model)
                         }
                     }
                 }
             }
 
             onSelectedRow: function(index){
-//                dlgEdit.barcode = pageDoc.currentBarcode
-//                dlgEdit.quantity = pageDoc.currentQuantity
-//                dlgEdit.visible = true
+                //var uuid = ""
+                var iUuid = wsDocumentTable.getColumnIndex("ref")
+                var iBr = wsDocumentTable.getColumnIndex("barcode")
+                var iQ = wsDocumentTable.getColumnIndex("quantity")
+                //uuid = wsDocumentTable.value(index, Qt.UserRole + iUuid)
+
+                dlgEdit.row = index.row
+                dlgEdit.uuid = wsDocumentTable.data(index, Qt.UserRole + iUuid).toString();
+                dlgEdit.barcode = wsDocumentTable.data(index, Qt.UserRole + iBr).toString();
+                dlgEdit.quantity = wsDocumentTable.data(index, Qt.UserRole + iQ).toInt();
+                dlgEdit.visible = true
 
 
 //                var uuid = ""

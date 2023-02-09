@@ -16,9 +16,9 @@
 #include <QSqlField>
 #endif
 
-void trim(std::string& source){ boost::trim(source);};
-void to_upper(std::string& source){boost::to_upper(source);};
-void to_lower(std::string& source){boost::to_lower(source);};
+static inline void trim(std::string& source){ boost::trim(source);};
+static inline void to_upper(std::string& source){boost::to_upper(source);};
+static inline void to_lower(std::string& source){boost::to_lower(source);};
 template<typename... Arguments>
 std::string str_sample(const std::string& format_string, const Arguments&... args){return boost::str((boost::format(format_string) % ... % args));}
 
@@ -834,9 +834,10 @@ namespace arcirk::database::builder {
 #ifdef IS_USE_QT_LIB
         template<typename T>
         std::vector<T> rows_to_array(QSqlDatabase& sql){
-            if(!is_valid())
+            if(!is_valid() || !sql.isOpen())
                 return std::vector<T>{};
-            QSqlQuery rs(QString::fromStdString(result), sql);
+            QSqlQuery rs;//(sql);
+            rs.exec(result.c_str());
             std::vector<T> m_vec;
             while (rs.next()) {
                 T user_data = T();

@@ -65,6 +65,7 @@ namespace arcirk::server{
         ObjectSetToDatabase, //Синхронизация объекта 1С с базой
         ObjectGetFromDatabase, //Получить объект типа 1С из базы данных для десериализации
         SyncGetDiscrepancyInData, //Получить расхождения в данных между базами на клиенте и на Сервере
+        SyncUpdateDataOnTheServer,
         CMD_INVALID=-1,
     };
 
@@ -87,6 +88,7 @@ namespace arcirk::server{
          {ObjectSetToDatabase, "ObjectSetToDatabase"}    ,
          {ObjectGetFromDatabase, "ObjectGetFromDatabase"}    ,
          {SyncGetDiscrepancyInData, "SyncGetDiscrepancyInData"}    ,
+         {SyncUpdateDataOnTheServer, "SyncUpdateDataOnTheServer"}    ,
     })
 
 }

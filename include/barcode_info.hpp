@@ -36,6 +36,7 @@ public:
     explicit BarcodeInfo(QObject *parent = nullptr);
 
     void set_barcode_info_object(const std::string& source);
+    void set_barcode_info(const arcirk::client::barcode_info& info);
     void set_image_from_base64(const std::string& response);
 
     std::string uuid(){

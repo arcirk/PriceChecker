@@ -60,6 +60,7 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
     connect(m_tmr_synchronize,SIGNAL(timeout()),this,SLOT(onSynchronize()));
 
     syncData = new SyncData(this);
+    syncDataCreateConnections();
 
     sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
 #ifndef Q_OS_WINDOWS
@@ -81,6 +82,8 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
     }
 
     is_offline = true;
+
+    startSynchronize();
 }
 
 WebSocketClient::WebSocketClient(QObject *parent)
@@ -101,6 +104,9 @@ WebSocketClient::WebSocketClient(QObject *parent)
     m_tmr_synchronize = new QTimer(this);
     connect(m_tmr_synchronize,SIGNAL(timeout()),this,SLOT(onSynchronize()));
 
+    syncData = new SyncData(this);
+    syncDataCreateConnections();
+
     sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
 #ifndef Q_OS_WINDOWS
     sqlDatabase.setDatabaseName("pricechecker.sqlite");
@@ -119,6 +125,8 @@ WebSocketClient::WebSocketClient(QObject *parent)
     }
 
     is_offline = true;
+
+    startSynchronize();
 }
 
 WebSocketClient::~WebSocketClient()
@@ -159,46 +167,6 @@ void WebSocketClient::reconnect()
 {
     open(wsSettings);
 }
-
-//QString WebSocketClient::typePriceRef() const
-//{
-//    return QString::fromStdString(wsSettings.workplace_options().);
-//}
-
-//QString WebSocketClient::stockRef() const
-//{
-//    return QString::fromStdString(chk_conf.stockRef);
-//}
-
-//void WebSocketClient::setTypePriceRef(const QString &value)
-//{
-//    chk_conf.typePriceRef = value.toStdString();
-//}
-
-//void WebSocketClient::setStockRef(const QString &value)
-//{
-//    chk_conf.stockRef = value.toStdString();
-//}
-
-//QString WebSocketClient::typePrice() const
-//{
-//    return QString::fromStdString(chk_conf.typePrice);
-//}
-
-//QString WebSocketClient::stock() const
-//{
-//    return QString::fromStdString(chk_conf.stock);
-//}
-
-//void WebSocketClient::setTypePrice(const QString &value)
-//{
-//    chk_conf.typePrice = value.toStdString();
-//}
-
-//void WebSocketClient::setStock(const QString &value)
-//{
-//    chk_conf.stock = value.toStdString();
-//}
 
 void WebSocketClient::setUrl(const QUrl &url)
 {
@@ -274,6 +242,33 @@ void WebSocketClient::onReconnect()
 void WebSocketClient::onSynchronize()
 {
 
+    qDebug() << __FUNCTION__;
+    if(!isStarted())
+        return;
+    if(syncData->running())
+        return;
+
+    if(m_async_await.size() > 0){
+        m_async_await.append(std::bind(&WebSocketClient::synchronizeBase, this));
+    }else
+        synchronizeBase();
+
+}
+
+void WebSocketClient::onEndSynchronize(bool isValid, const nlohmann::json &objects)
+{
+    qDebug() << __FUNCTION__ << isValid;
+    if(!isValid)
+        return;
+
+    if(!isStarted())
+        return;
+
+    send_command(arcirk::server::server_commands::SyncUpdateDataOnTheServer, {
+                     {"device_id", wsSettings->deviceId().toStdString()},
+                     {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+                     {"base64_param", QByteArray::fromStdString(objects.dump()).toBase64().toStdString()},
+                 });
 }
 
 QString WebSocketClient::generateHash(const QString &usr, const QString &pwd)
@@ -303,7 +298,7 @@ void WebSocketClient::parse_response(const QString &resp)
                 //поочередное выполнение
                 m_async_await.append(std::bind(&WebSocketClient::updateHttpServiceConfiguration, this));
                 m_async_await.append(std::bind(&WebSocketClient::get_workplace_options, this));
-                m_async_await.append(std::bind(&WebSocketClient::synchronizeBase, this));
+                //m_async_await.append(std::bind(&WebSocketClient::synchronizeBase, this));
                 asyncAwait();
             }else{
                 emit displayError("SetClientParam", "Ошибка авторизации");
@@ -528,6 +523,8 @@ void WebSocketClient::get_workplace_view_options()
 
 void WebSocketClient::synchronizeBase()
 {
+    qDebug() << __FUNCTION__;
+
     if(!isStarted()){
         asyncAwait();
         return;
@@ -542,11 +539,11 @@ void WebSocketClient::synchronizeBase()
     }
 
     if(!sqlDatabase.isOpen()){
+        qDebug() << __FUNCTION__ << "База данных не открыта!";
         asyncAwait();
         return;
     }
 
-    //1.) Получаем список локальных документов
     QSqlQuery rs;
     rs.exec("select ref,version from Documents");
     nlohmann::json t_docs{};
@@ -556,17 +553,6 @@ void WebSocketClient::synchronizeBase()
             {"version", rs.value("version").toInt()}
         };
     };
-
-//    nlohmann::json query_param{};
-//    query_param["base64_param"] = t_docs;
-
-//    nlohmann::json query_param = {
-//        {"table_name", "DevicesView"},
-//        {"query_type", "select"},
-//        {"where_values", nlohmann::json({
-//             {"ref", devId.toString(QUuid::StringFormat::WithoutBraces).toStdString()}
-//         })}
-//    };
 
     std::string base64_param = QByteArray::fromStdString(t_docs.dump()).toBase64().toStdString();
 
@@ -585,6 +571,7 @@ void WebSocketClient::synchronizeBaseNext(const arcirk::server::server_response 
 {
     qDebug() << __FUNCTION__;
 
+
     if(resp.result == "error")
         return;
 
@@ -594,86 +581,10 @@ void WebSocketClient::synchronizeBaseNext(const arcirk::server::server_response 
         return;
 
     auto result = nlohmann::json::parse(QByteArray::fromBase64(resp.result.data()).toStdString());
-    auto objects = result.value("objects", nlohmann::json{});
-    auto comparison_table = result.value("comparison_table", nlohmann::json{});
-    std::map<std::string, std::pair<int,int>> m_ext_table;
-    std::vector<std::string> m_vec_new_documents;
-    if (comparison_table.is_array() && !comparison_table.empty()) {
-        for (auto itr = comparison_table.begin(); itr != comparison_table.end(); ++itr) {
-            nlohmann::json r = *itr;
-            m_ext_table.emplace(r["ref"], std::pair<int,int>(r["ver1"], r["ver2"]));
-            if(r["ver1"] < r["ver2"]){
-                m_vec_new_documents.push_back(r["ref"]);
-            }
-        }
-    }
 
-    if(objects.is_array()){
-        //sqlDatabase.transaction();
-        for (auto const & itr : objects) {
-            if(itr.is_object()){
-                auto items = itr.items();
-                for (auto const & itr : items) {
-                    //qDebug() << QString::fromStdString(itr.key());
-                    auto std_attr = pre::json::from_json<documents>(itr.value()["object"]["StandardAttributes"]);
-                    auto query = builder::query_builder();
-                    query.use(pre::json::to_json(std_attr));
-                    QSqlQuery q;
-                    auto d_itr = m_ext_table.find(std_attr.ref);
-                    QString query_str;
-                    if(d_itr != m_ext_table.end()){
-                        if(d_itr->second.second != -1){
-                            query_str = QString::fromStdString(query.remove().from(arcirk::enum_synonym(tbDocuments)).where(nlohmann::json{
-                                                                                                                                        {"ref", std_attr.ref}
-                                                                                                                                    }, true).prepare());
-                            q.exec(query_str);
-                            if(q.lastError().isValid())
-                                qCritical() << q.lastError().text();
-                        }
-
-                    }
-
-                    query_str = QString::fromStdString(query.insert(arcirk::enum_synonym(tbDocuments), true).prepare());
-                    //qDebug() << qPrintable(query_str);
-                    q.exec(query_str);
-                    if(q.lastError().isValid())
-                        qCritical() << q.lastError().text();
-
-                    auto m_rows = itr.value()["object"]["TabularSections"];
-                    if(m_rows.is_array()){
-                        for (auto const & tbl : m_rows) {
-                            query.clear();
-                            if(tbl.is_object()){
-                                query.use(tbl);
-                                query_str = QString::fromStdString(query.remove().from(arcirk::enum_synonym(tbDocumentsTables)).where(nlohmann::json{
-                                                                                                                                          {"parent", std_attr.ref}
-                                                                                                                                      }, true).prepare());
-                                q.exec(query_str);
-                                if(q.lastError().isValid())
-                                    qCritical() << q.lastError().text();
-                                query_str = QString::fromStdString(query.insert(arcirk::enum_synonym(tbDocumentsTables), true).prepare());
-                                q.exec(query_str);
-                                if(q.lastError().isValid())
-                                    qCritical() << q.lastError().text();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        //sqlDatabase.commit();
-    }else if(objects.is_object()){
-        auto items = objects.items();
-        for (auto const & itr : items) {
-            qDebug() << QString::fromStdString(itr.key());
-        }
-    }
-
-    //Выгружаем на севрвер локальные документы с версией выше чем на сервере
-    if(m_vec_new_documents.size() > 0){
-        foreach (auto const& itr, m_vec_new_documents) {
-
-        }
+    if(!syncData->running()){
+        syncData->setComparisonOfDocuments(result);
+        syncOperatiions.start();
     }
 }
 
@@ -733,7 +644,7 @@ void WebSocketClient::registerDevice()
     }
 }
 
-void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInfo* bInfo)
+void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInfo* bInfo, bool skip_data)
 {
 
     if(!wsSettings){
@@ -741,92 +652,97 @@ void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInf
         return;
     }
 
-    if(wsSettings->workplace_options().warehouse.empty() || wsSettings->workplace_options().price_type.empty()){
-        const QString err = "Не инициализированы настройки рабочего места!";
-        qCritical() << err;
-        emit displayError("WebSocketClient::get_barcode_information", err);
-        return;
-    }
+    if(!skip_data){
+        if(wsSettings->workplace_options().warehouse.empty() || wsSettings->workplace_options().price_type.empty()){
+            const QString err = "Не инициализированы настройки рабочего места!";
+            qCritical() << err;
+            emit displayError("WebSocketClient::get_barcode_information", err);
+            return;
+        }
 
-    if(wsSettings->getHttpService().isEmpty()){
-        qCritical() << "HTTP сервис 1С предприятия не указан!";
-        return;
-    }
+        if(wsSettings->getHttpService().isEmpty()){
+            qCritical() << "HTTP сервис 1С предприятия не указан!";
+            return;
+        }
 
-    QEventLoop loop;
-    int httpStatus = 200;
-    QByteArray httpData;
-    QNetworkAccessManager httpService;
+        QEventLoop loop;
+        int httpStatus = 200;
+        QByteArray httpData;
+        QNetworkAccessManager httpService;
 
-    auto finished = [&loop, &httpStatus, &httpData](QNetworkReply* reply) -> void
-    {
-       QVariant status_code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-       if(status_code.isValid()){
-           httpStatus = status_code.toInt();
-           if(httpStatus != 200){
-                qCritical() << __FUNCTION__ << "Error: " << httpStatus << " " + reply->errorString() ;
-           }else
-           {
-               httpData = reply->readAll();
+        auto finished = [&loop, &httpStatus, &httpData](QNetworkReply* reply) -> void
+        {
+           QVariant status_code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+           if(status_code.isValid()){
+               httpStatus = status_code.toInt();
+               if(httpStatus != 200){
+                    qCritical() << __FUNCTION__ << "Error: " << httpStatus << " " + reply->errorString() ;
+               }else
+               {
+                   httpData = reply->readAll();
+               }
            }
-       }
-       loop.quit();
+           loop.quit();
 
-    };
+        };
 
-    loop.connect(&httpService, &QNetworkAccessManager::finished, finished);
+        loop.connect(&httpService, &QNetworkAccessManager::finished, finished);
 
-    QNetworkRequest request(wsSettings->getHttpService() + "/info");
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+        QNetworkRequest request(wsSettings->getHttpService() + "/info");
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    QString pwd = cryptPass(wsSettings->getHttpPassword(), "my_key");
-    QString concatenated = wsSettings->getHttpUser() + ":" + pwd;
-    QByteArray data = concatenated.toLocal8Bit().toBase64();
-    QString headerData = "Basic " + data;
-    request.setRawHeader("Authorization", headerData.toLocal8Bit());
+        QString pwd = cryptPass(wsSettings->getHttpPassword(), "my_key");
+        QString concatenated = wsSettings->getHttpUser() + ":" + pwd;
+        QByteArray data = concatenated.toLocal8Bit().toBase64();
+        QString headerData = "Basic " + data;
+        request.setRawHeader("Authorization", headerData.toLocal8Bit());
 
-    auto bi = arcirk::client::barcode_info();
+        auto bi = arcirk::client::barcode_info();
 
-    //временный код, для совместимости, http серис используется старой весией прайс чекера
-//    nlohmann::json param = {
-//        {"barcode", barcode.toStdString()},
-//        {"command", "InfoFromBarcode"},
-//        {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
-//        {"typePrice", wsSettings->workplace_options().price},
-//        {"stockRef", wsSettings->workplace_options().warehouse},
-//        {"eng", true},
-//        {"byteArray", true}
-//    };
+        //временный код, для совместимости, http серис используется старой весией прайс чекера
+    //    nlohmann::json param = {
+    //        {"barcode", barcode.toStdString()},
+    //        {"command", "InfoFromBarcode"},
+    //        {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
+    //        {"typePrice", wsSettings->workplace_options().price},
+    //        {"stockRef", wsSettings->workplace_options().warehouse},
+    //        {"eng", true},
+    //        {"byteArray", true}
+    //    };
 
-    nlohmann::json param = {
-        {"barcode", barcode.toStdString()},
-        {"command", "BarcodeInfo"},
-        {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
-        {"price", wsSettings->workplace_options().price_type},
-        {"warehouse", wsSettings->workplace_options().warehouse},
-        {"image_data", false} //wsSettings->isShowImage() тормозит
-    };
+        nlohmann::json param = {
+            {"barcode", barcode.toStdString()},
+            {"command", "BarcodeInfo"},
+            {"barcode_info", pre::json::to_json<arcirk::client::barcode_info>(bi)},
+            {"price", wsSettings->workplace_options().price_type},
+            {"warehouse", wsSettings->workplace_options().warehouse},
+            {"image_data", false} //wsSettings->isShowImage() тормозит
+        };
 
-    httpService.post(request, QByteArray::fromStdString(param.dump()));
-    loop.exec();
+        httpService.post(request, QByteArray::fromStdString(param.dump()));
+        loop.exec();
 
-    if(httpStatus != 200){
-        return;
+        if(httpStatus != 200){
+            return;
+        }
+
+        if(httpData.isEmpty())
+            return;
+
+        //bool is_error = false;
+        try {
+            bInfo->set_barcode_info_object(httpData.toStdString());
+        } catch (const std::exception& e) {
+            qCritical() << __FUNCTION__ << e.what();
+            emit displayError("get_barcode_information", "Не верный формат данных.");
+            bInfo->clear("Ошибка чтения штрихкода");
+            //is_error = true;
+        }
+    }else{
+        auto barcode_inf =  arcirk::client::barcode_info();
+        barcode_inf.barcode = barcode.toStdString();
+        bInfo->set_barcode_info(barcode_inf);
     }
-
-    if(httpData.isEmpty())
-        return;
-
-    //bool is_error = false;
-    try {
-        bInfo->set_barcode_info_object(httpData.toStdString());
-    } catch (const std::exception& e) {
-        qCritical() << __FUNCTION__ << e.what();
-        emit displayError("get_barcode_information", "Не верный формат данных.");
-        bInfo->clear("Ошибка чтения штрихкода");
-        //is_error = true;
-    }
-
 //    if(wsSettings->isShowImage() && !is_error){
 //        if(!bInfo->uuid().empty()){
 //            param = {
@@ -1062,15 +978,17 @@ void WebSocketClient::documentContentUpdate(const QString &barcode, const int qu
                          {"query_param", query_param}
                      });
     }else{
-        if(!sqlDatabase.isOpen())
+        if(!sqlDatabase.isOpen()){
+            qCritical() << "Нет подключения к базе данных!";
             return;
+        }
 
         using namespace arcirk::database;
 
-        int count = -0;
+        int count = 0;
         QSqlQuery rs(builder::query_builder().row_count().from(arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables)).where(nlohmann::json{{"ref", row.ref}}, true).prepare().c_str());
         while (rs.next()) {
-            count++;
+            count += rs.value(0).toInt();
         }
         rs.clear();
         auto br = builder::query_builder();
@@ -1133,18 +1051,49 @@ void WebSocketClient::documentUpdate(const QString &number, const QString &date,
     auto dt = QDateTime::fromString(date, "dd.MM.yyyy hh:mm:ss");
     source_.date = dt.toSecsSinceEpoch();// + dt.offsetFromUtc();
     source_.cache = cache.dump();
+    source_.version++;
 
-    nlohmann::json param = {
-        {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
-        {"query_type", "update_or_insert"},
-        {"values", pre::json::to_json(source_)}
-    };
+    if(!is_offline){
+        nlohmann::json param = {
+            {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+            {"query_type", "update_or_insert"},
+            {"values", pre::json::to_json(source_)}
+        };
 
-    std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
-    send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
-                     {"query_param", query_param}
-                 });
+        std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", query_param}
+                     });
+    }else{
+        if(!sqlDatabase.isOpen()){
+            qCritical() << __FUNCTION__  << "База данных не подключена!";
+            return;
+        }
 
+        using namespace arcirk::database;
+        auto query = builder::query_builder();
+        int count = 0;
+        QSqlQuery rs(query.row_count().from(arcirk::enum_synonym(tables::tbDocuments)).where(nlohmann::json{
+                                                                                             {"ref", source_.ref}
+                                                                                             }, true).prepare().c_str());
+        while (rs.next()) {
+            count += rs.value(0).toInt();
+        }
+        query.clear();
+        query.use(pre::json::to_json(source_));
+        if(count == 0){
+            query.insert(arcirk::enum_synonym(tables::tbDocuments), true);
+        }else{
+            query.update(arcirk::enum_synonym(tables::tbDocuments), true).where(nlohmann::json{
+                                                                                     {"ref", source_.ref}
+                                                                                     }, true);
+        }
+        rs.clear();
+        rs.exec(query.prepare().c_str());
+
+        if(rs.lastError().isValid())
+            qCritical() << __FUNCTION__ << rs.lastError().text();
+    }
 }
 
 QString WebSocketClient::documentGenerateNewNumber(const int id)
@@ -1152,9 +1101,10 @@ QString WebSocketClient::documentGenerateNewNumber(const int id)
     return QString("%1").arg(id, 9, 'g', -1, '0');
 }
 
-void WebSocketClient::initSyncData()
+void WebSocketClient::syncDataCreateConnections()
 {
-    connect(&syncOperatiions, &QThread::started, &syncData, &SyncData::run);
-    connect(&syncData, &SyncData::finished, &syncOperatiions, &QThread::terminate);
-    syncData.moveToThread(&syncOperatiions);
+    connect(&syncOperatiions, &QThread::started, syncData, &SyncData::run);
+    connect(syncData, &SyncData::finished, &syncOperatiions, &QThread::terminate);
+    connect(syncData, &SyncData::endSynchronize, this, &WebSocketClient::onEndSynchronize);
+    syncData->moveToThread(&syncOperatiions);
 }

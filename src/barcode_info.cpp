@@ -57,6 +57,23 @@ void BarcodeInfo::set_barcode_info_object(const std::string &source)
 
 }
 
+void BarcodeInfo::set_barcode_info(const arcirk::client::barcode_info &info)
+{
+    barcode_inf = info;
+    if(!barcode_inf.image_base64.empty()){
+         QByteArray img = QByteArray::fromBase64(barcode_inf.image_base64.data());
+         if(!img.isNull()){
+             QString image("data:image/png;base64,");
+             image.append(QString::fromLatin1(img.toBase64().data()));
+             m_imageSource = image;
+         }else
+             m_imageSource = "";
+    }else
+        m_imageSource = "";
+
+    emit barcodeInfoChanged();
+}
+
 void BarcodeInfo::set_image_from_base64(const std::string &response)
 {
     auto info = nlohmann::json::parse(response);

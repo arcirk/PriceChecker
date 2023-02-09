@@ -49,14 +49,22 @@ ApplicationWindow {
             btnDocuments.visible = false
             if(wsSettings.keyboardInputMode)
                 attachFocus.focus = true
+        }else if(stackView.currentItem.objectName === "pageDocument"){
+            btnDocumentNew.visible = false;
+            btnArrowleft.visible = true
+            btnDocuments.visible = false
+            if(wsSettings.keyboardInputMode)
+                attachFocus.focus = true
         }
 
     }
 
     property BarcodeParser wsBarcodeParser: BarcodeParser{
         onBarcode: function(value){
-            //console.log(value)
-            wsClient.get_barcode_information(value, wsBarcodeInfo)
+            if(stackView.currentItem.objectName !== "pageDocument")
+                wsClient.get_barcode_information(value, wsBarcodeInfo)
+            else
+                wsClient.get_barcode_information(value, wsBarcodeInfo, true)
         }
     }
 
@@ -149,7 +157,11 @@ ApplicationWindow {
         visible: false
 
         onEnterBarcodeFromKeyboard: function(value){
-            wsClient.get_barcode_information(value, wsBarcodeInfo)
+            if(stackView.currentItem.objectName !== "pageDocument")
+                wsClient.get_barcode_information(value, wsBarcodeInfo)
+            else{
+                wsClient.get_barcode_information(value, wsBarcodeInfo, true)
+            }
         }
 
         onVisibleChanged: {
@@ -429,6 +441,7 @@ ApplicationWindow {
         onGetContent: function(ref){
             pageDocument.ref = ref;
             wsClient.getDocumentContent(ref)
+            updateToolbarButton();
         }
     }
 
@@ -459,10 +472,10 @@ ApplicationWindow {
                 if(stackView.currentItem.objectName === "pageStart")
                     openPageScanner();
             }
-            if(wsClient.isStarted()){
-                //wsClient.sendBarcode(message, pageScanner.document_id)
+            if(stackView.currentItem.objectName !== "pageDocument")
                 wsClient.get_barcode_information(message, wsBarcodeInfo)
-            }
+            else
+                wsClient.get_barcode_information(message, wsBarcodeInfo, true)
 
             console.log("barcode: " + message)
         }
