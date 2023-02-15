@@ -1,6 +1,7 @@
 #ifndef SYNCDATA_H
 #define SYNCDATA_H
 #include <QObject>
+#include <QFloat16>
 #include <nlohmann/json.hpp>
 
 class SyncData : public QObject{
