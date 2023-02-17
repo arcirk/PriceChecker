@@ -118,6 +118,7 @@ Page {
                         width: listView.width - messageRow.spacing - 12
                         uuid: model.ref
                         onMenuTriggered: function(command){
+                            console.debug("onMenuTriggered: " + command)
                             if(command === "mnuOpen"){
                                 docInfo.docNumber = model.number
                                 docInfo.docDate = wsClient.documentDate(model.date)

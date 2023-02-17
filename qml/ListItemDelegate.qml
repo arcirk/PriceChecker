@@ -42,7 +42,8 @@ RoundPane {
         let cm = control.modelIndex.cache
         if(cm !== undefined && cm !== ""){
             let obj = JSON.parse(cm)
-            return obj['comment']
+            //let comment = obj['comment']
+            return obj['comment'].trim()
         }else
             return ""
     }
@@ -132,6 +133,7 @@ RoundPane {
                         text: control.currentTable === "documents" ? "Изменить" : "Информация"
                         icon.source: "qrc:/img/edit_document.svg"
                         onTriggered: {
+                            console.debug("open")
                             control.menuTriggered("mnuOpen")
                         }
                     }
@@ -206,20 +208,24 @@ RoundPane {
                 Menu {
                     id: contextMenuComment
                     Action {
-                        text: control.currentTable === "documents" ? "Изменить" : "Информация"
+                        id: mOpen
+                        text: "Изменить" //currentTable === "documents" ? "Изменить" : "Информация"
                         icon.source: "qrc:/img/edit_document.svg"
                         onTriggered: {
+                            //console.debug("open")
                             control.menuTriggered("mnuOpen")
                         }
                     }
 //                        Action { text: "Копировать" }
 //                        Action { text: "Переслать" }
                     Action {
+                        id: mDel
                         text: "Удалить";
                         enabled: !menuDeleteDisable;
                         icon.source: "qrc:/img/delete_doc.svg"
                         onTriggered: {
-                            console.debug("delete")
+                            //console.debug("delete")
+                            control.menuTriggered("mnuDelete")
                         }
                     }
                 }

@@ -104,7 +104,7 @@ Page {
                         width: listView.width - messageRow.spacing - 12
                         uuid: model.ref
                         onMenuTriggered: function(command){
-
+                            console.debug("onMenuTriggered: " + command)
                         }
                         onClicked: function(row){
                             console.log("onSelectItem " + row)

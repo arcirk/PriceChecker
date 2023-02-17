@@ -919,6 +919,15 @@ void WebSocketClient::getDocumentContent(const QString &ref)
                                                {"parent", ref.toStdString()}
                                            }, true).prepare(), sqlDatabase, result);
 
+        if(result["columns"].size() == 1){
+            auto table_info = arcirk::database::table_info(sqlDatabase, arcirk::database::tables::tbDocumentsTables);
+            //nlohmann::json cols{};
+            for(auto itr = table_info.begin(); itr != table_info.end();  ++itr){
+                //cols += itr.key();
+                result["columns"] += itr.key();
+            }
+            //result["columns"] = cols;
+        }
         emit readDocumentTable(QString::fromStdString(result.dump()));
     }
 }
@@ -1093,6 +1102,8 @@ void WebSocketClient::documentUpdate(const QString &number, const QString &date,
 
         if(rs.lastError().isValid())
             qCritical() << __FUNCTION__ << rs.lastError().text();
+
+        getDocuments();
     }
 }
 

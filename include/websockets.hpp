@@ -76,7 +76,7 @@ public:
 
     Q_INVOKABLE void startSynchronize(){
         qDebug() << __FUNCTION__;
-        //ToDo: Добавить в настройки переодиченость запуска.
+        //ToDo: Добавить в настройки периодичность запуска.
         m_tmr_synchronize->start(5 * 1000 * 60);
     };
 

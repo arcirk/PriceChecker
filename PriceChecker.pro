@@ -2,6 +2,7 @@ QT += quick widgets
 QT += websockets network sql
 QT += quickcontrols2
 QT += core-private
+QT += core
 
 SOURCES += \
         main.cpp \
