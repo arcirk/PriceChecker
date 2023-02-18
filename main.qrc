@@ -43,5 +43,7 @@
         <file>qml/ListItemDelegate.qml</file>
         <file>img/cloud_sync.svg</file>
         <file>img/sync_problem.svg</file>
+        <file>img/text-search.svg</file>
+        <file>qml/DoQueryBox.qml</file>
     </qresource>
 </RCC>

@@ -17,6 +17,8 @@ Page {
     property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 12
     property int imageMaximumHeight: screenWidth > 1000 ? 400 : 250
 
+    property bool hideBalance: value
+
     function setBarcode(bInfo){
         txtBarcode.text = bInfo.barcode;
         txtName.text = bInfo.synonym;
@@ -234,8 +236,10 @@ Page {
                     font.bold: true
                 }
                 Text {
+                    id: lblBalance
                     text: "Остаток:"
                     font.pixelSize: fontPixelSizeGrey + 8
+                    visible: !pageConnanctions.hideBalance
                 }
                 Text {
                     id: txtStockBalance
@@ -243,6 +247,7 @@ Page {
                     horizontalAlignment: Qt.AlignHCenter
                     font.pixelSize: fontPixelSizeGrey + 8
                     font.bold: true
+                    visible: !pageConnanctions.hideBalance
                 }
 
             }

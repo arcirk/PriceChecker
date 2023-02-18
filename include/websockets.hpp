@@ -80,14 +80,23 @@ public:
         m_tmr_synchronize->start(5 * 1000 * 60);
     };
 
+    Q_INVOKABLE void deleteDocument(const QString& ref, const int ver);
     Q_INVOKABLE void getDocuments();
     Q_INVOKABLE void getDocumentInfo(const QString& ref);
     Q_INVOKABLE void getDocumentContent(const QString& ref);
     Q_INVOKABLE QString documentDate(const int value) const;
     Q_INVOKABLE void addDocument(const QString& number, const int date, const QString& comment);
     Q_INVOKABLE void documentContentUpdate(const QString& barcode, const int quantity, const QString& parent, const QString& ref, QJsonTableModel* model);
-    Q_INVOKABLE void documentUpdate(const QString& number, const QString& date, const QString comment, const QString source);
+    Q_INVOKABLE void documentUpdate(const QString& number, const QString& date, const QString& comment, const QString& source);
     Q_INVOKABLE QString documentGenerateNewNumber(const int id);
+    Q_INVOKABLE void removeRecord(const QString& ref, QJsonTableModel* model);
+
+    Q_INVOKABLE void debugViewTime();
+
+    Q_INVOKABLE void synchronizeBase();
+
+
+
 private:
     QWebSocket* m_client;
     arcirk::Settings * wsSettings;
@@ -137,7 +146,7 @@ private:
         }
     };
 
-    void synchronizeBase();
+
     void synchronizeBaseNext(const arcirk::server::server_response& resp);
 
 private slots:

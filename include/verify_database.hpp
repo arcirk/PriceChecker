@@ -148,7 +148,7 @@ namespace arcirk::database{
         std::map<tables, int> result;
         result.emplace(tables::tbDatabaseConfig, 2);
         result.emplace(tables::tbNomenclature, 2);
-        result.emplace(tables::tbDocuments, 2);
+        result.emplace(tables::tbDocuments, 3);
         result.emplace(tables::tbDevices, 2);
         result.emplace(tables::tbMessages, 2);
         result.emplace(tables::tbUsers, 2);

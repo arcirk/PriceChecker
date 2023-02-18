@@ -21,6 +21,7 @@ QJsonTableModel::QJsonTableModel(QObject *parent)
     m_rowIcon = {};
     m_rowKeys = {};
     m_fmtText = {};
+    m_currentRow = 0;
 }
 
 bool QJsonTableModel::setJson(const QJsonDocument &json)
@@ -316,7 +317,9 @@ void QJsonTableModel::setColumnAliases(const QMap<QString, QString> &columnAlias
 }
 
 void QJsonTableModel::reset() {
+    qDebug() << "start reset" << QTime::currentTime();
     beginResetModel();
+    qDebug() << "end reset" << QTime::currentTime();
     endResetModel();
 }
 
@@ -517,6 +520,17 @@ int QJsonTableModel::max(const QString &field)
     return result;
 }
 
+int QJsonTableModel::currentRow()
+{
+    return m_currentRow;
+}
+
+void QJsonTableModel::setCurrentRow(int row)
+{
+    m_currentRow = row;
+    emit currentRowChanged();
+}
+
 void QJsonTableModel::setFormatColumn(int column, const QString &fmt)
 {
     m_fmtText.insert(column, fmt);
@@ -524,13 +538,16 @@ void QJsonTableModel::setFormatColumn(int column, const QString &fmt)
 
 void QJsonTableModel::removeRow(int row)
 {
+    qDebug() << __FUNCTION__ << row;
+
     if(row < rowCount()){
         m_json.removeAt(row);
         auto iter = m_fmtText.find(row);
         if(iter != m_fmtText.end())
             m_fmtText.erase(iter);
 
-        m_rowKeys.removeAt(row);
+        if(m_rowKeys.size() > row)
+            m_rowKeys.removeAt(row);
 
         for(int i = 0; i < _header.count(); ++i){
             auto pr = qMakePair(row, i);
@@ -564,7 +581,21 @@ void QJsonTableModel::addRow(const QString &rowJson)
     addRow(obj);
 }
 
+void QJsonTableModel::insertRow(int pos, const QString &rowJson)
+{
+    auto obj = QJsonDocument::fromJson(rowJson.toUtf8()).object();
+    m_json.insert(pos, obj);
+}
+
 void QJsonTableModel::addRow(const QString& barcode, const QString& parent, int quantity)
 {
 
+}
+
+void QJsonTableModel::moveTop(int row)
+{
+    auto obj = getJsonObject(index(row,0));
+    removeRow(row);
+    m_json.insert(0, obj);
+    //reset();
 }

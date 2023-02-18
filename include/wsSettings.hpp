@@ -76,7 +76,7 @@ namespace arcirk{
 
         QString getHttpService() const;
         QString getHttpPassword()  const;
-        QString getHttpUser() const;
+        QString getHttpUser();
 
         bool isShowImage();
 

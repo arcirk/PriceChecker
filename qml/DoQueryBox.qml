@@ -16,10 +16,10 @@ Popup {
 
     property int fontPixelSize: screenWidth > 1000 ? 20 : 16
 
+    property int version: 0
     property string uuid: ""
     property int row: 0
-    property alias barcode: txtBarcode.text
-    property alias quantity: txtQuantity.text
+    property alias text: lblQuery.text
     property string theme: "Dark"
 
     signal accept()
@@ -32,42 +32,12 @@ Popup {
         anchors.margins: 10
         columnSpacing: fontPixelSize
         Text{
+            id: lblQuery
             font.pixelSize: fontPixelSize
-            font.bold: true
-            text: "Штрихкод:"
             color: dialog.theme === "Light" ? "#424242" : "#efebe9"
+            Layout.columnSpan: 2
         }
-        Text{
-            id: txtBarcode
-            font.pixelSize: fontPixelSize
-            color: dialog.theme === "Light" ? "#424242" : "#efebe9"
-            font.bold: true
-        }
-        Text{
-            font.pixelSize: fontPixelSize
-            text: "Количество:"
-            color: dialog.theme === "Light" ? "#424242" : "#efebe9"
-            font.bold: true
-        }
-        TextField{
-            id: txtQuantity
-            font.pixelSize: fontPixelSize
-            font.bold: true
-            //text: wsSettings.url() //"ws://<domainname>"
-            color: dialog.theme === "Light" ? "#424242" : "#efebe9"
-            validator: IntValidator {bottom: 1; top: 10000}
-            Material.accent: Material.Blue
-            Layout.fillWidth: true
-            wrapMode: Text.WordWrap
-            //enabled: !wsClient.isStarted();
-            onEditingFinished: {
-                //wsSettings.setUrl(txtServer.text);
-            }
-            onAccepted: {
-                txtQuantity.focus = false
-            }
 
-        }
         RowLayout{
             Layout.alignment: Qt.AlignRight
             Layout.columnSpan: 2 // screenWidth > 1000 ? 1 : 2
@@ -75,7 +45,7 @@ Popup {
                 id: btnOK
                 text: "OK" //screenWidth > 1000 ? "OK" : ""
                 //icon.source:  screenWidth > 1000 ? "" : "qrc:/img/to_data.png"
-                onClicked: {                    
+                onClicked: {
                     dialog.visible = false
                     dialog.accept()
                 }
@@ -83,14 +53,12 @@ Popup {
 
             Button{
                 id: btnDislogClose
-                text: "Закрыть"
+                text: "Отмена"
 
                 onClicked: {
                     dialog.visible = false
                 }
             }
         }
-
     }
-
 }

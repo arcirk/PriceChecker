@@ -20,7 +20,7 @@ public:
     void setSortRole(int role);
 
     QString filter();
-    void setFilter(const QString& filterText);
+    Q_INVOKABLE void setFilter(const QString& filterText);
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const  override;

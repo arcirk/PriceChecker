@@ -7,9 +7,11 @@ Pane {
     id: control
     property int radius: 2
 
-    //signal clicked(string buttonId)
+    property alias backgroundColor: ctrl.color
+
 
     background: Rectangle {
+        id: ctrl
         color: control.Material.backgroundColor
         radius: control.Material.elevation > 0 ? control.radius : 0
 

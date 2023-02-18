@@ -42,11 +42,15 @@ bool QProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParen
                 QString value = model->data(index).toString();
                 QString filter = i.value().toString();
                 if(filter.left(1) != "!"){
-                    if (filter != value)
+//                    if (filter != value)
+//                        return false;
+                    if(value.indexOf(filter) == -1)
                         return false;
                 }else{
                     filter = filter.right(filter.length() - 1);
-                    if (filter == value)
+//                    if (filter == value)
+//                        return false;
+                    if(value.indexOf(filter) == -1)
                         return false;
                 }
             }

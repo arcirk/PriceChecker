@@ -133,6 +133,9 @@ WebSocketClient::~WebSocketClient()
 {
     if(isStarted())
         m_client->close();
+    m_tmr_synchronize->stop();
+    m_reconnect->stop();
+    syncOperatiions.exit();
 }
 
 bool WebSocketClient::isStarted()
@@ -729,6 +732,12 @@ void WebSocketClient::get_barcode_information(const QString &barcode, BarcodeInf
         if(httpData.isEmpty())
             return;
 
+        if(httpData == "error"){
+             bInfo->clear("Ошибка чтения штрихкода");
+             emit displayError("get_barcode_information", "Не верный формат данных.");
+             return;
+        }
+
         //bool is_error = false;
         try {
             bInfo->set_barcode_info_object(httpData.toStdString());
@@ -827,6 +836,48 @@ void WebSocketClient::checkConnection()
         startReconnect();
 }
 
+void WebSocketClient::deleteDocument(const QString &ref, const int ver)
+{
+    int v = ver;
+    if(v < 0)
+        v = 0;
+
+    if(!is_offline){
+        nlohmann::json param = {
+            {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+            {"query_type", "update"},
+            {"values", nlohmann::json{
+                 {"deleted_mark", 1},
+                 {"version", v + 1}
+             }},
+            {"where_values", nlohmann::json{{"ref", ref.toStdString()}}}
+        };
+
+        std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
+        send_command(arcirk::server::server_commands::ExecuteSqlQuery, {
+                         {"query_param", query_param}
+                     });
+    }else{
+        if(!sqlDatabase.isOpen())
+            return;
+
+        using namespace arcirk::database;
+        nlohmann::json result{};
+        auto br = builder::query_builder();
+        br.use(nlohmann::json{
+                   {"deleted_mark", 1},
+                   {"version", v + 1}
+               });
+
+        QSqlQuery rs;
+        rs.exec(br.update(arcirk::enum_synonym(tables::tbDocuments), true)
+        .where(nlohmann::json{
+               {"ref", ref.toStdString()}
+           }, true).prepare().c_str());
+
+    }
+}
+
 void WebSocketClient::getDocuments()
 {
     if(!is_offline){
@@ -834,7 +885,10 @@ void WebSocketClient::getDocuments()
             {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
             {"query_type", "select"},
             {"values", nlohmann::json{}},
-            {"where_values", nlohmann::json{{"device_id", wsSettings->deviceId().toStdString()}}}
+            {"where_values", nlohmann::json{
+                 {"device_id", wsSettings->deviceId().toStdString()},
+                 {"deleted_mark", 0}
+             }}
         };
 
         std::string query_param = QByteArray::fromStdString(param.dump()).toBase64().toStdString();
@@ -851,8 +905,9 @@ void WebSocketClient::getDocuments()
                     builder::query_builder().select(nlohmann::json{"*"})
                     .from(arcirk::enum_synonym(tables::tbDocuments))
                     .where(nlohmann::json{
-                                               {"device_id", wsSettings->deviceId().toStdString()}
-                                           }, true).prepare(), sqlDatabase, result);
+                               {"device_id", wsSettings->deviceId().toStdString()},
+                               {"deleted_mark", 0}
+                            }, true).prepare(), sqlDatabase, result);
         emit readDocuments(QString::fromStdString(result.dump()));
     }
 
@@ -1007,21 +1062,42 @@ void WebSocketClient::documentContentUpdate(const QString &barcode, const int qu
         }else{
             rs.exec(br.insert(arcirk::enum_synonym(arcirk::database::tables::tbDocumentsTables), true).prepare().c_str());
         }
+
+        rs.clear();
+        br.clear();
+        rs.exec(br.select({"*"}).from(arcirk::enum_synonym(arcirk::database::tables::tbDocuments)).where(nlohmann::json{{"ref", row.parent}}, true).prepare().c_str());
+        int version = 1;
+        while (rs.next()) {
+            version += rs.value("version").toInt();
+        }
+        rs.clear();
+        br.clear();
+        br.use(nlohmann::json{
+                   {"version", version}
+               });
+        rs.exec(br.update(arcirk::enum_synonym(arcirk::database::tables::tbDocuments), true).where(nlohmann::json{{"ref", row.parent}}, true).prepare().c_str());
+
     }
 
 
     if(Index != -1){
         auto bIndex = model->findInTable(barcode, Index, false);
         if(!bIndex.isValid()){
-            model->addRow(QString::fromStdString(pre::json::to_json(row).dump()));
+            //model->addRow(QString::fromStdString(pre::json::to_json(row).dump()));
+            model->insertRow(0, QString::fromStdString(pre::json::to_json(row).dump()));
         }else{
             model->updateRow(barcode, quantity, bIndex.row());
+            model->moveTop(bIndex.row());
         }
-        model->reset();
+        //if(model->currentRow() != 0){
+            model->setCurrentRow(0);
+            model->reset();
+//        }else
+//            model->dataChanged(bIndex, bIndex);
     }
 }
 
-void WebSocketClient::documentUpdate(const QString &number, const QString &date, const QString comment, const QString source)
+void WebSocketClient::documentUpdate(const QString &number, const QString &date, const QString& comment, const QString& source)
 {
 
     auto source_ = arcirk::database::table_default_struct<arcirk::database::documents>(arcirk::database::tbDocuments);
@@ -1110,6 +1186,59 @@ void WebSocketClient::documentUpdate(const QString &number, const QString &date,
 QString WebSocketClient::documentGenerateNewNumber(const int id)
 {
     return QString("%1").arg(id, 9, 'g', -1, '0');
+}
+
+void WebSocketClient::removeRecord(const QString &ref, QJsonTableModel* model)
+{
+    if(!sqlDatabase.isOpen()){
+        qCritical() << __FUNCTION__  << "База данных не подключена!";
+        return;
+    }
+
+    using namespace arcirk::database;
+    auto query = builder::query_builder();
+
+    QSqlQuery rs;
+    rs.exec(query.remove().from(arcirk::enum_synonym(tables::tbDocumentsTables)).where(nlohmann::json{
+                                                                                           {"ref", ref.toStdString()}
+                                                                                           }, true).prepare().c_str());
+    auto index = model->getColumnIndex("ref");
+    auto v_index = model->getColumnIndex("parent");
+    auto nIndex = model->findInTable(ref, index, false);
+
+    if(v_index != -1){
+        if(nIndex.isValid()){
+
+            QString parent = model->data(nIndex, Qt::UserRole + v_index).toString();
+            rs.clear();
+            query.clear();
+            rs.exec(query.select({"*"}).from(arcirk::enum_synonym(arcirk::database::tables::tbDocuments)).where(nlohmann::json{{"ref", parent.toStdString()}}, true).prepare().c_str());
+            int version = 1;
+            while (rs.next()) {
+                version += rs.value("version").toInt();
+            }
+            rs.clear();
+            query.clear();
+            query.use(nlohmann::json{
+                          {"version", version}
+                      });
+            rs.exec(query.update(arcirk::enum_synonym(tables::tbDocuments), true).where(nlohmann::json{
+                                                                                      {"ref", parent.toStdString()}
+                                                                                  }, true).prepare().c_str());
+        }
+    }
+    if(index != -1){
+        //auto nIndex = model->findInTable(ref, index, false);
+        if(nIndex.isValid()){
+            model->removeRow(nIndex.row());
+        }
+    }
+
+}
+
+void WebSocketClient::debugViewTime()
+{
+    qDebug() << __FUNCTION__ << QTime::currentTime();
 }
 
 void WebSocketClient::syncDataCreateConnections()

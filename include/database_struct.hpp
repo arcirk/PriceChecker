@@ -63,6 +63,7 @@ BOOST_FUSION_DEFINE_STRUCT(
         (int, version)
         (std::string, device_id)
         (std::string, workplace)
+        (int, deleted_mark)
 
 );
 
@@ -243,7 +244,8 @@ namespace arcirk::database{
                                           "    xml_type        TEXT      DEFAULT \"\",\n"
                                           "    version         INTEGER NOT NULL DEFAULT(0),\n"
                                           "    device_id       TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
-                                          "    workplace       TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000]\n"
+                                          "    workplace       TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
+                                          "    deleted_mark    INTEGER NOT NULL DEFAULT(0)\n"
                                           ");";
 
     const std::string document_table_table_ddl = "CREATE TABLE DocumentsTables (\n"

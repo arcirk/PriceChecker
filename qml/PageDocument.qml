@@ -4,6 +4,7 @@ import QtQuick.Controls.Material 2.15
 import QtQuick.Controls.Material.impl 2.15
 import QtQuick.Layouts 1.12
 import QJsonTableModel 1.0
+import QProxyModel 1.0
 
 Page {
 
@@ -16,9 +17,32 @@ Page {
     property int currentQuantity: 0
     property int fontPixelSizeGrey: screenWidth > 1000 ? 20 : 8
     property int imageMaximumHeight: screenWidth > 1000 ? 400 : 250
+    property bool findToolBar: false
+
+
+    DoQueryBox{
+        id: queryBox
+        visible: false
+
+        onAccept: {
+            wsClient.removeRecord(queryBox.uuid, wsDocumentTable)
+        }
+    }
+
+    function setFilterBarcode(value){
+        txtFilter.text = value
+        //wsProxyModel.setFilter("{\"barcode\":\"%1\"}".arg(txtFilter.text))
+    }
 
     property QJsonTableModel wsDocumentTable: QJsonTableModel{
+        onCurrentRowChanged: {
+//            wsDocumentTable.reset();
+            console.debug("wsDocumentTable.onCurrentRowChanged " + wsDocumentTable.currentRow)
+        }
+    }
 
+    property QProxyModel wsProxyModel: QProxyModel{
+        sourceModel: wsDocumentTable
     }
 
     function setModelSource(value){
@@ -46,10 +70,85 @@ Page {
         }
     }
 
+    function editBarcode(barcode, quantity){
+        let index = wsDocumentTable.getColumnIndex("barcode")
+        let indexRef = wsDocumentTable.getColumnIndex("ref")
+        let mIndex = wsDocumentTable.findInTable(barcode, index, false);
+        wsClient.documentContentUpdate(barcode, Number(quantity), pageDoc.ref, wsDocumentTable.value(mIndex, Qt.UserRole + indexRef), wsDocumentTable)
+    }
+
+    signal viewBarcodeInfo(string br);
+
     DialogEditBarcode {
         id: dlgEdit
         visible: false
         theme: pageDoc.theme
+
+        onAccept: {
+            if(dlgEdit.quantity.trim() === ''){
+                wsClient.displayError("Ошибка", "Не указано количество!")
+                return;
+            }
+            if(Number(dlgEdit.quantity) === 0){
+                wsClient.displayError("Ошибка", "Не указано количество!")
+                return;
+            }
+
+            pageDoc.editBarcode(dlgEdit.barcode, dlgEdit.quantity)
+            wsDocumentTable.reset()
+        }
+
+        onVisibleChanged: {
+//            if(!dlgEdit.visible)
+//                wsDocumentTable.reset()
+        }
+    }
+
+    header: ToolBar{
+        id: toolBarFind
+        visible: pageDoc.findToolBar
+        Material.background: myTheme === "Light" ? "#efebe9" : "#424242"
+        padding: 10
+//        TextEdit{
+//            id: txtFind
+//            anchors.fill: parent
+//            //Material.background: "#efebe9"
+//            color: "#efebe9"
+//        }
+        Rectangle {
+            color: "#efebe9"
+            TextInput {
+                id: txtFilter
+                padding: 5
+                text: ""
+                font.bold: true
+                font.pixelSize: 18
+                Material.accent: Material.Blue
+                width: parent.width
+                onTextChanged: {
+                    wsProxyModel.setFilter("{\"barcode\":\"%1\"}".arg(txtFilter.text))
+                }
+                onAccepted: {
+                    txtFilter.focus = false
+                }
+            }
+            anchors.fill: parent
+            Component.onCompleted: {
+                txtFilter.focus = true
+            }
+
+
+//            width: childrenRect.width
+//            height: childrenRect.height
+        }
+
+        onVisibleChanged: {
+            txtFilter.focus = toolBarFind.visible
+            if(!toolBarFind.visible && txtFilter.text !== ""){
+                txtFilter.text = ""
+                wsProxyModel.setFilter("{\"barcode\":\"%1\"}".arg(txtFilter.text))
+            }
+        }
     }
 
     Column{
@@ -65,7 +164,7 @@ Page {
             displayMarginBeginning: 40
             displayMarginEnd: 40
             spacing: 12
-            model: wsDocumentTable
+            model: wsProxyModel //wsDocumentTable
 
             signal selectedRow(var modelindex)
             signal removeRow(var modelindex)
@@ -103,30 +202,52 @@ Page {
                         currentTable: "document_table"
                         width: listView.width - messageRow.spacing - 12
                         uuid: model.ref
+                        selectedIndex: wsDocumentTable.currentRow === model.row ? true : false
+                        //backgroundColor: delegate.selectedIndex ? "red" : control.Material.backgroundColor
                         onMenuTriggered: function(command){
-                            console.debug("onMenuTriggered: " + command)
+                            //console.debug("onMenuTriggered: " + command)
+                            wsDocumentTable.currentRow = model.row;
+                            //listView.model.reset();
+                            if(command === "mnuOpen"){
+                                pageDoc.viewBarcodeInfo(model.barcode)
+                            }else if(command === "mnuDelete"){
+                                queryBox.text = "Удалить выбранную строку?"
+                                queryBox.uuid = model.ref
+                                queryBox.version = Number(model.version);
+                                queryBox.visible = true
+                            }
                         }
                         onClicked: function(row){
-                            console.log("onSelectItem " + row)
+                            wsClient.debugViewTime();
+                            //console.log("onSelectItem " + row)
+                            wsDocumentTable.currentRow = Number(row);
+
                             listView.selectedRow(model)
+                            //listView.model.reset();
+
+                            //listView.model.dataChanged(listView.model.index(wsDocumentTable.currentRow,0), listView.model.index(wsDocumentTable.currentRow,0))
                         }
+
                     }
                 }
             }
 
             onSelectedRow: function(index){
-                //var uuid = ""
-                var iUuid = wsDocumentTable.getColumnIndex("ref")
-                var iBr = wsDocumentTable.getColumnIndex("barcode")
-                var iQ = wsDocumentTable.getColumnIndex("quantity")
-                //uuid = wsDocumentTable.value(index, Qt.UserRole + iUuid)
+//                //var uuid = ""
+//                var iUuid = wsDocumentTable.getColumnIndex("ref")
+//                var iBr = wsDocumentTable.getColumnIndex("barcode")
+//                var iQ = wsDocumentTable.getColumnIndex("quantity")
+//                //uuid = wsDocumentTable.value(index, Qt.UserRole + iUuid)
+
+
 
                 dlgEdit.row = index.row
-                dlgEdit.uuid = wsDocumentTable.data(index, Qt.UserRole + iUuid).toString();
-                dlgEdit.barcode = wsDocumentTable.data(index, Qt.UserRole + iBr).toString();
-                dlgEdit.quantity = wsDocumentTable.data(index, Qt.UserRole + iQ).toInt();
+                dlgEdit.uuid = index.ref// wsDocumentTable.data(index, Qt.UserRole + iUuid).toString();
+                dlgEdit.barcode = index.barcode //wsDocumentTable.data(index, Qt.UserRole + iBr).toString();
+                dlgEdit.quantity = index.quantity // wsDocumentTable.data(index, Qt.UserRole + iQ).toInt();
                 dlgEdit.visible = true
 
+                //listView.model.reset();
 
 //                var uuid = ""
 //                var iUuid = wsDocuments.getColumnIndex("ref")

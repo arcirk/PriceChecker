@@ -26,13 +26,20 @@ Page {
 
     }
 
+    DoQueryBox{
+        id: queryBox
+        visible: false
+
+        onAccept: {
+            wsClient.deleteDocument(queryBox.uuid, queryBox.version)
+            wsClient.getDocuments()
+        }
+    }
+
     DialogDocumentInfo{
         id: docInfo
         visible: false
 
-//        onAdd_document: function() {
-//            wsClient.documentUpdate(docInfo.docNumber, docInfo.docDate, docInfo.docComent, "", docInfo.uuid)
-//        }
         onAccept:function(modelIndex){
             let source = "";
             if(modelIndex !== undefined){
@@ -60,36 +67,6 @@ Page {
     Column{
         anchors.fill: parent
         spacing: 10
-//        Row{
-//            id: rowTitle
-//            topPadding: 10
-//            Layout.fillWidth: true
-//            width: parent.width
-//            spacing: 10
-
-//            ToolBar {
-//                id: toolBar
-//                ToolButton {
-//                    id: btn
-//                    icon.source: "qrc:/img/qr16.png"
-//                }
-//            }
-
-//            Text {
-//                id: txtTitle
-//                leftPadding: 10
-//                color: "gray"
-//                wrapMode: Text.WordWrap
-//                width: parent.width
-//            }
-//            Rectangle{
-//                width: pageDocs.width - txtTitle.implicitWidth - 20
-//                height: 1
-//                color: "gray"
-//                anchors.bottom: txtTitle.bottom
-//            }
-
-//        }
 
         ListView {
             id: listView
@@ -126,85 +103,20 @@ Page {
                                 //docInfo.docSourceComment = delegate.getSourceComment();
                                 docInfo.modelIndex = model;
                                 docInfo.visible = true
+                            }else if(command === "mnuDelete"){
+                                queryBox.text = "Удалить выбранный документ?"
+                                queryBox.uuid = model.ref
+                                queryBox.version = Number(model.version);
+                                queryBox.visible = true
                             }
                         }
                         onClicked: function(row){
                             console.log("onSelectItem " + row)
-                            listView.selectedRow(wsDocuments.index(row,0))
+                            listView.selectedRow(wsDocuments.index(model.row,0))
                         }
                     }
                 }
             }
-            //property QtObject selDelegate;
-
-//            delegate: Column {
-//                spacing: 6
-
-//                Row {
-//                    id: messageRow
-//                    spacing: 6
-////                    DelegateView{
-////                        id: messageText
-////                        name: model.second + "  " + model.number + " от " + wsClient.documentDate(model.date)
-////                        theme: pageDocs.theme
-////                        //icon: "qrc:/img/1cv8.png"
-////                        //iconSize: 24
-////                        width: listView.width - messageRow.spacing - 12
-////                        height: messageText.implicitHeight// + 24
-////                        ctrlPaddig: 10
-////                        textColor: pageDocs.theme !== "Dark" ? "black" : "white"
-////                        row: model.row;
-////                        fontPixelSize: fontPixelSizeGrey + 8
-////                        expandIcon: true
-//////                        onSelectItem: function(selRow){
-//////                            //console.log("onSelectItem " + selRow)
-//////                            //listView.selectedRow(listView.model.index(selRow,0))
-//////                            if(messageText.state !== "shown"){
-//////                                messageText.state = "shown"
-//////                                messageText.checked = true;
-//////                                messageText.hidden = false;
-//////                                messageText.expandState = "expanded"
-//////                            }else{
-//////                                messageText.state = "close"
-//////                                messageText.checked = false;
-//////                                messageText.hidden = true;
-//////                                messageText.expandState = "collapsed"
-//////                            }
-//////                        }
-////                        onMenuTriggered: function(command){
-////                            if(command === "mnuOpen"){
-////                                docInfo.visible = true
-////                            }
-////                        }
-
-////                    }
-//                    DocumentsDelegate{
-//                        id: messageText
-//                        width: listView.width - messageRow.spacing - 24 - 12
-//                        //height: messageText.implicitHeight// + 38
-//                        expandIcon:true
-//                        name: model.second + "  " + model.number + " от " + wsClient.documentDate(model.date)
-//                        ctrlPaddig: 10
-//                        textColor: pageDocs.theme !== "Dark" ? "black" : "white"
-//                        row: model.row;
-//                        fontPixelSize: fontPixelSizeGrey + 8
-////                        icon: "qrc:/img/1cv8.png"
-////                        iconSize: 24
-////                        onSelectedChanged: function(item){
-////                            if(listView.selDelegate){
-////                                listView.selDelegate.checked = false;
-////                                listView.selDelegate.hidden = true;
-////                                listView.selDelegate.expandState = "collapsed"
-////                            }
-////                            if(listView.selDelegate !== item)
-////                                listView.selDelegate = item
-////                            else{
-////                                listView.selDelegate = null
-////                            }
-////                        }
-//                    }
-//                }
-//            }
 
             onSelectedRow: function(index){
                 var uuid = ""

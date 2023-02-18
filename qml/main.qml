@@ -21,7 +21,7 @@ ApplicationWindow {
     property string myTheme: "Dark"
     Material.theme: myTheme === "Light" ? Material.Light : Material.Dark
 
-    function updateToolbarButton(){
+    function updateToolbarButton(isBlockDocCommand){
 //        btnArrowleft.visible = false
 //        if(!wsSettings.priceCheckerMode){
 //            //btnScan.enabled = stackView.currentItem.objectName === "pageScanner";
@@ -32,27 +32,34 @@ ApplicationWindow {
 //        }
 
         if(stackView.currentItem.objectName === "pageStart"){
-            btnDocumentNew.visible = false;
+            btnDocumentNew.visible = false
             btnArrowleft.visible = false
+            btnFind.visible = false
             btnDocuments.visible = !wsSettings.priceCheckerMode
             if(wsSettings.keyboardInputMode)
                 attachFocus.focus = true
         }else if(stackView.currentItem.objectName === "pageScanner"){
             btnDocumentNew.visible = false;
             btnArrowleft.visible = true
+            btnFind.visible = false
             btnDocuments.visible = !wsSettings.priceCheckerMode
             if(wsSettings.keyboardInputMode)
                 attachFocus.focus = true
+            if(btnDocuments.visible){
+                btnDocuments.visible = !isBlockDocCommand;
+            }
         }else if(stackView.currentItem.objectName === "pageDocuments"){
             btnDocumentNew.visible = true;
             btnArrowleft.visible = true
             btnDocuments.visible = false
+            btnFind.visible = false
             if(wsSettings.keyboardInputMode)
                 attachFocus.focus = true
         }else if(stackView.currentItem.objectName === "pageDocument"){
             btnDocumentNew.visible = false;
             btnArrowleft.visible = true
             btnDocuments.visible = false
+            btnFind.visible = true
             if(wsSettings.keyboardInputMode)
                 attachFocus.focus = true
         }
@@ -61,24 +68,30 @@ ApplicationWindow {
 
     property BarcodeParser wsBarcodeParser: BarcodeParser{
         onBarcode: function(value){
-            if(stackView.currentItem.objectName !== "pageDocument")
+            if(stackView.currentItem.objectName !== "pageDocument"){
                 wsClient.get_barcode_information(value, wsBarcodeInfo)
-            else
-                wsClient.get_barcode_information(value, wsBarcodeInfo, true)
+            }else{
+                //wsClient.get_barcode_information(value, wsBarcodeInfo, true)
+                if(!pageDocument.findToolBar)
+                    wsClient.get_barcode_information(value, wsBarcodeInfo, true)
+                else
+                    pageDocument.setFilterBarcode(value)
+            }
         }
     }
 
-    function openPageScanner(){
+    function openPageScanner(isViewOnly){
         var item = stackView.find(function(item) {
             return item.objectName === "pageScanner";
         })
+        pageScanner.hideBalance = isViewOnly
         if(item === null){
             stackView.push(pageScanner);
         }else{
             if(stackView.currentItem !== item)
                  stackView.push(pageScanner);
         }
-        updateToolbarButton();
+        updateToolbarButton(isViewOnly);
     }
 
     property BarcodeInfo wsBarcodeInfo: BarcodeInfo {
@@ -86,10 +99,10 @@ ApplicationWindow {
 
         onBarcodeInfoChanged: {
             if(wsSettings.priceCheckerMode)
-                openPageScanner();
+                openPageScanner(false);
             else{
                 if(stackView.currentItem.objectName === "pageStart")
-                    openPageScanner();
+                    openPageScanner(false);
             }
 
             if(stackView.currentItem.objectName === "pageScanner"){
@@ -157,10 +170,14 @@ ApplicationWindow {
         visible: false
 
         onEnterBarcodeFromKeyboard: function(value){
-            if(stackView.currentItem.objectName !== "pageDocument")
+            if(stackView.currentItem.objectName !== "pageDocument"){
                 wsClient.get_barcode_information(value, wsBarcodeInfo)
-            else{
-                wsClient.get_barcode_information(value, wsBarcodeInfo, true)
+            }else{
+                //wsClient.get_barcode_information(value, wsBarcodeInfo, true)
+                if(!pageDocument.findToolBar)
+                    wsClient.get_barcode_information(value, wsBarcodeInfo, true)
+                else
+                    pageDocument.setFilterBarcode(value)
             }
         }
 
@@ -267,7 +284,7 @@ ApplicationWindow {
                 visible: false
                 onClicked: {
                     stackView.pop();
-                    updateToolbarButton();
+                    updateToolbarButton(false);
                 }
             }
             ToolButton{
@@ -307,7 +324,7 @@ ApplicationWindow {
                     }else
                         stackView.pop()
 
-                    updateToolbarButton();
+                    updateToolbarButton(false);
 
                     if(stackView.currentItem.objectName === "pageDocuments"){
                         wsClient.getDocuments();
@@ -325,12 +342,25 @@ ApplicationWindow {
                 icon.source: "qrc:/img/documetAdd.svg"
                 visible: false
                 onClicked: {
-                    //updateToolbarButton();
+                    //updateToolbarButton(false);
                     docInfo.docDate = Qt.formatDateTime(new Date(), "dd.MM.yyyy hh:mm:ss")
                     docInfo.docNumber = pageDocuments.new_number();
                     //docInfo.modelIndex = pageDocuments.wsDocuments.emptyIndex();
                     docInfo.isNew = true
                     docInfo.visible = true
+                }
+            }
+            ToolButton{
+                id: btnFind
+                icon.source: "qrc:/img/text-search.svg"
+                visible: true
+                checkable: true
+                Material.accent: Material.Blue
+                onClicked: {
+                    if(stackView.currentItem.objectName === "pageDocument"){
+                        pageDocument.findToolBar = btnFind.checked;
+                        attachFocus.focus = !btnFind.checked;
+                    }
                 }
             }
             Label{
@@ -351,6 +381,7 @@ ApplicationWindow {
 //                        }else{
 //                            wsClient.close();
 //                        }
+                        wsClient.synchronizeBase();
                         attachFocus.focus = true;
                     }
 
@@ -384,6 +415,8 @@ ApplicationWindow {
         }
     }
 
+
+
     onWindowStateChanged: function(windowState) {
         console.log( "onWindowStateChanged (Window), state: " + windowState );
         if(!wsClient.isStarted() && windowState !== Qt.WindowMinimized){
@@ -395,7 +428,7 @@ ApplicationWindow {
 //            wsSettings.save()
             wsClient.open(wsSettings);
         }
-        updateToolbarButton();
+        updateToolbarButton(false);
     }
 
     StackView{
@@ -441,7 +474,7 @@ ApplicationWindow {
         onGetContent: function(ref){
             pageDocument.ref = ref;
             wsClient.getDocumentContent(ref)
-            updateToolbarButton();
+            updateToolbarButton(false);
         }
     }
 
@@ -449,6 +482,12 @@ ApplicationWindow {
         objectName: "pageDocument"
         id: pageDocument
         visible: false
+        onViewBarcodeInfo: function(barcode){
+            if(barcode.trim() !== ''){
+                 openPageScanner(true);
+                 wsClient.get_barcode_information(barcode, wsBarcodeInfo)
+            }
+        }
     }
 
     Row{
@@ -467,16 +506,20 @@ ApplicationWindow {
         target: qtAndroidService
         function onMessageFromService(message) {
             if(wsSettings.priceCheckerMode)
-                openPageScanner();
+                openPageScanner(false);
             else{
                 if(stackView.currentItem.objectName === "pageStart")
-                    openPageScanner();
+                    openPageScanner(false);
             }
             if(stackView.currentItem.objectName !== "pageDocument")
                 wsClient.get_barcode_information(message, wsBarcodeInfo)
-            else
-                wsClient.get_barcode_information(message, wsBarcodeInfo, true)
-
+            else{
+                //wsClient.get_barcode_information(message, wsBarcodeInfo, true)
+                if(!pageDocument.findToolBar)
+                    wsClient.get_barcode_information(message, wsBarcodeInfo, true)
+                else
+                    pageDocument.setFilterBarcode(message)
+            }
             console.log("barcode: " + message)
         }
     }

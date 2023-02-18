@@ -18,6 +18,7 @@ class QJsonTableModel : public QAbstractTableModel{
 
     Q_OBJECT
     Q_PROPERTY(QString jsonText READ jsonText WRITE setJsonText NOTIFY jsonTextChanged)
+    Q_PROPERTY(int currentRow READ currentRow WRITE setCurrentRow NOTIFY currentRowChanged)
 
 public:
     typedef QMap<QString,QString> Heading;
@@ -52,7 +53,9 @@ public:
     void removeRow(int row);
     void addRow(const QJsonObject& row);
     void addRow(const QString& rowJson);
+    void insertRow(int pos, const QString& rowJson);
     Q_INVOKABLE void addRow(const QString& barcode, const QString& parent, int quantity);
+    Q_INVOKABLE void moveTop(int row);
 
     int row(const QPair<QString, QString>& key);
     QJsonObject getRowObject(int row);
@@ -70,8 +73,14 @@ public:
     Q_INVOKABLE QModelIndex emptyIndex(){
         return QModelIndex();
     };
+
+    int currentRow();
+    void setCurrentRow(int row);
+
+
 signals:
     void jsonTextChanged();
+    void currentRowChanged();
 private:
     bool setJson( const QJsonArray& array );
     static QString fromBase64(const QString& str);
@@ -89,6 +98,8 @@ private:
     QMap<QPair<int,int>, QIcon> m_rowIcon;
     QVector<QPair<QString, QString>> m_rowKeys;
     QMap<int, QString> m_fmtText;
+
+    int m_currentRow;
 
 };
 #endif //WS_SOLUTION_QJSONTABLEMODEL_H

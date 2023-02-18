@@ -339,9 +339,15 @@ namespace arcirk{
         return httpPwd();
     }
 
-    QString Settings::getHttpUser() const
+    QString Settings::getHttpUser()
     {
-        return httpUser();
+        QString usr = httpUser();
+        if(usr.isEmpty()){
+            usr = userName();
+            setHttpUser(usr);
+            save();
+        }
+        return usr;
     }
 
     bool Settings::isShowImage()

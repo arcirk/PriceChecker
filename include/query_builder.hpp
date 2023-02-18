@@ -17,7 +17,7 @@
 #endif
 
 static inline void trim(std::string& source){ boost::trim(source);};
-static inline void to_upper(std::string& source){boost::to_upper(source);};
+//static inline void to_upper(std::string& source){boost::to_upper(source);};
 static inline void to_lower(std::string& source){boost::to_lower(source);};
 template<typename... Arguments>
 std::string str_sample(const std::string& format_string, const Arguments&... args){return boost::str((boost::format(format_string) % ... % args));}
@@ -156,7 +156,7 @@ namespace arcirk::database::builder {
                 if(quotation_marks)
                     result.append("'");
                 i++;
-                if(i != json_object.size())
+                if(i != (int)json_object.size())
                     result.append(",");
             }
 
@@ -425,10 +425,6 @@ namespace arcirk::database::builder {
             result.append(enum_synonym(join_type));
             result.append(" join temp_table");
             return *this;
-        }
-
-        query_builder& create_temp_table(std::string){
-
         }
 
         query_builder& where_join(const json& values, const std::string& join_table_name, bool use_values){
@@ -893,7 +889,11 @@ namespace arcirk::database::builder {
                     foreach (const auto itr , m_vec_table) {
                         n_json_table += pre::json::to_json<database::document_table>(itr);
                     }
-                    j_object["object"]["TabularSections"] = n_json_table;
+
+                    j_object["object"]["TabularSections"] +=  nlohmann::json{
+                                        {"name", "barcodes"},
+                                        {"strings", n_json_table}
+                                    };
 
                 }
             }else if(o_table == database::tbDevices){

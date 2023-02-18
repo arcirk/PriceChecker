@@ -8,7 +8,7 @@ RoundPane {
     id: control
     padding: 2
 
-    property int selectedIndex: 0
+    property bool selectedIndex: false
 
     property int fontPixelSize: screenWidth > 1000 ? 20 : 16
 
@@ -20,6 +20,8 @@ RoundPane {
     property bool checkable: false
     property bool menuDeleteDisable: false
     property string uuid: ""
+
+
 
     function getValue(field){
         if(control.model === undefined)
@@ -52,16 +54,35 @@ RoundPane {
         let cm = control.modelIndex.cache
         if(cm !== undefined && cm !== ""){
             let obj = JSON.parse(cm)
-            return obj
+            return obj.trim()
         }else
             return ""
     }
+
+    function setSelectedBackground(){
+        if(control.checked && !control.chldrenList){
+            if(!control.selectedIndex){
+                if(control.theme == "Dark")
+                    control.Material.background  = "#424242"
+                else
+                    control.Material.background  = "#efebe9"
+            }else{
+                control.Material.background  = "#424242"
+            }
+        }else
+            if(!control.selectedIndex)
+                control.Material.background  = undefined
+            else
+                control.Material.background  = "#424242"
+    }
+
 
     Material.elevation: {
         if(isSelected)
             1
         else
             7
+        //setSelectedBackground();
     }
 
     radius: 3
@@ -69,12 +90,19 @@ RoundPane {
     Material.background:{
 
         if(control.checked && !control.chldrenList){
-            if(control.theme == "Dark")
-                "#424242"
-            else
-                "#efebe9"
+            if(!control.selectedIndex){
+                if(control.theme == "Dark")
+                    "#424242"
+                else
+                    "#efebe9"
+            }else{
+                "red"
+            }
         }else
-            undefined
+            if(!control.selectedIndex)
+                undefined
+            else
+                "#424242"
     }
 
     signal menuTriggered(string name)
@@ -92,6 +120,7 @@ RoundPane {
             textFormat: Text.RichText
             wrapMode: Text.WordWrap
             text: control.getSynonim()
+            font.bold: selectedIndex
             width: parent.width
             //padding: 10
             font.pixelSize: control.fontPixelSize
@@ -106,19 +135,22 @@ RoundPane {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor;
 
-                onClicked: {
+                onClicked: {                    
                     control.clicked(modelIndex.row)
                     console.log("onClicked");
                 }
                 onEntered: {
                     if(!control.checkable){
                         control.Material.elevation = 1
+                        //control.Material.background  = "#424242"
                     }
                     console.log("onEntered");
                 }
                 onExited: {
+                    //setSelectedBackground();
                     if(!control.checkable)
                         control.Material.elevation = 7
+                    //control.Material.background  = undefined
                     console.log("onExited");
                     //selectItem(control.row)
                 }
@@ -133,7 +165,7 @@ RoundPane {
                         text: control.currentTable === "documents" ? "Изменить" : "Информация"
                         icon.source: "qrc:/img/edit_document.svg"
                         onTriggered: {
-                            console.debug("open")
+                            //console.debug("open")
                             control.menuTriggered("mnuOpen")
                         }
                     }
@@ -144,7 +176,8 @@ RoundPane {
                         enabled: !menuDeleteDisable;
                         icon.source: "qrc:/img/delete_doc.svg"
                         onTriggered: {
-                            console.debug("delete")
+                            //console.debug("delete")
+                            control.menuTriggered("mnuDelete")
                         }
                     }
                 }
@@ -209,7 +242,7 @@ RoundPane {
                     id: contextMenuComment
                     Action {
                         id: mOpen
-                        text: "Изменить" //currentTable === "documents" ? "Изменить" : "Информация"
+                        text: control.currentTable === "documents" ? "Изменить" : "Информация"
                         icon.source: "qrc:/img/edit_document.svg"
                         onTriggered: {
                             //console.debug("open")
