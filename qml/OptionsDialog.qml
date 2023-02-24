@@ -22,6 +22,11 @@ Popup {
         txtHttpService.text = hsHost;
     }
 
+    function updateDavServiceConfiguration(davHost, davUser, davPwd){
+        wsSettings.davService = davHost;
+        txtDavService.text = davHost;
+    }
+
     signal webSocketConnect();
 
     onVisibleChanged: {
@@ -39,6 +44,18 @@ Popup {
             btnConnected.text = value ? "Отключится" : "Подключится";
         else
             btnConnected.icon.source = wsClient.isStarted() ? "qrc:/img/lan_check_online.png" : "qrc:/img/lan_check_offline.png"
+    }
+
+    DoQueryBox{
+        id: queryDialog
+        visible: false
+
+        onAccept: {
+            if(queryDialog.command === "dataFirstLoad"){
+                wsClient.firstLoadDatabase()
+            }else if(queryDialog.command === "deviceLoad")
+                wsClient.registerDevice();
+        }
     }
 
     GridLayout{
@@ -237,6 +254,29 @@ Popup {
                 txtHttpService.focus = false
             }
         }
+        Text{
+            font.pixelSize: fontPixelSize
+            text: "WebDav сервис:"
+            color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
+        }
+        TextField{
+            id: txtDavService
+            font.pixelSize: fontPixelSize
+            text: wsSettings.httpService
+            //color: popupSettingsDialog.theme === "Light" ? "#424242" : "#efebe9"
+            Material.accent: Material.Blue
+            Layout.fillWidth: true
+            color: "grey"
+            enabled: false //берем с сервера после подключения
+            wrapMode: Text.WordWrap
+
+            onEditingFinished: {
+                wsSettings.davService = txtDavService.text
+            }
+            onAccepted: {
+                txtDavService.focus = false
+            }
+        }
         Label{
             text: ""
         }
@@ -351,6 +391,41 @@ Popup {
         RowLayout{
             Layout.alignment: Qt.AlignRight
             Layout.columnSpan: screenWidth > 1000 ? 1 : 2
+
+            Button{
+                id: btnLoadData
+                text: screenWidth > 1000 ? "Первоначальное заполнение" : ""
+                icon.source:  screenWidth > 1000 ? "" : "qrc:/img/to_data.png"
+                onClicked: {
+                    if(!wsClient.isStarted())
+                        popupMessage.showError("Ошибка", "Клиент не подключен!")
+                    else{
+                        //wsClient.registerDevice();
+                        queryDialog.text = "Выполнить первоначальное заполнение данных?"
+                        queryDialog.command = "dataFirstLoad"
+                        queryDialog.visible = true
+                    }
+
+                }
+            }
+
+            Button{
+                id: btnRegistyDevice
+                text: screenWidth > 1000 ? "Зарегистрировать" : ""
+                icon.source:  screenWidth > 1000 ? "" : "qrc:/img/to_data.png"
+                onClicked: {
+                    if(!wsClient.isStarted())
+                        popupMessage.showError("Ошибка", "Клиент не подключен!")
+                    else{
+                        //wsClient.registerDevice();
+                        queryDialog.text = "Зарегистрировать устройство?"
+                        queryDialog.command = "deviceLoad"
+                        queryDialog.visible = true
+                    }
+
+                }
+            }
+
             Button{
                 id: btnConnected
                 text: screenWidth > 1000 ? (wsClient.isStarted() ? "Отключится" : "Подключится") : ""
@@ -363,19 +438,6 @@ Popup {
                 }
             }
 
-            Button{
-                id: btnRegistyDevice
-                text: screenWidth > 1000 ? "Зарегистрировать" : ""
-                icon.source:  screenWidth > 1000 ? "" : "qrc:/img/to_data.png"
-                onClicked: {
-                    if(!wsClient.isStarted())
-                        popupMessage.showError("Ошибка", "Клиент не подключен!")
-                    else{
-                        wsClient.registerDevice();
-                    }
-
-                }
-            }
 
             Button{
                 id: btnDislogClose

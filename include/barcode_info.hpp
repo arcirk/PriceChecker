@@ -7,16 +7,16 @@
 
 BOOST_FUSION_DEFINE_STRUCT(
         (arcirk::client), barcode_info,
-        (std::string, barcode)
-        (std::string, barcode_qr)
-        (std::string, synonym)
-        (int, balance)
-        (double, price)
-        (std::string, image_base64)
-        (bool, is_qr)
-        (std::string, uuid)
-        (std::string, unit)
-        (std::string, currency)
+        (std::string, barcode) //Штрихкод
+        (std::string, barcode_qr) //Qr код
+        (std::string, synonym) //Наименование
+        (int, balance) //Остаток
+        (double, price) //Цена
+        (std::string, image_base64) //картинка
+        (bool, is_qr) // это Qr?
+        (std::string, uuid) //идентфикатор номенклатуры
+        (std::string, unit) // единица измерения
+        (std::string, currency) //валюта
 );
 
 class BarcodeInfo : public QObject

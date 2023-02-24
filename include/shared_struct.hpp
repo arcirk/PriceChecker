@@ -66,6 +66,7 @@ namespace arcirk::server{
         ObjectGetFromDatabase, //Получить объект типа 1С из базы данных для десериализации
         SyncGetDiscrepancyInData, //Получить расхождения в данных между базами на клиенте и на Сервере
         SyncUpdateDataOnTheServer,
+        WebDavServiceConfiguration,
         CMD_INVALID=-1,
     };
 
@@ -89,6 +90,7 @@ namespace arcirk::server{
          {ObjectGetFromDatabase, "ObjectGetFromDatabase"}    ,
          {SyncGetDiscrepancyInData, "SyncGetDiscrepancyInData"}    ,
          {SyncUpdateDataOnTheServer, "SyncUpdateDataOnTheServer"}    ,
+         {WebDavServiceConfiguration, "WebDavServiceConfiguration"}    ,
     })
 
 }

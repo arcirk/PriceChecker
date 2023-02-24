@@ -1,78 +1,50 @@
+#include "include/synch_data.hpp"
 #include "include/database_struct.hpp"
-#include "include/SyncData.h"
 #include <QDebug>
+#include <QSqlDatabase>
 #include <QSqlError>
 #include "include/query_builder.hpp"
+#include <QStandardPaths>
+#include <QDir>
 
-SyncData::SyncData(QObject *parent):
-QObject(parent),
-m_message("")
+namespace arcirk::synchronize{
+
+SynchDocumentsBase::SynchDocumentsBase(arcirk::Settings *sett, QObject *parent )
 {
-    m_running = false;
+    this->setParent(parent);
+    m_settings = sett;
+    open_database();
+
 }
 
-bool SyncData::running() const
+void SynchDocumentsBase::synchronize()
 {
-    return m_running;
+    emit startSynchronize(connectionName());
+    nlohmann::json send_srv{};
+    bool result = synchronizeBaseDocuments(send_srv);
+    emit endSynchronize(connectionName(), result, send_srv);
 }
 
-QString SyncData::message() const
-{
-    return m_message;
-}
-
-void SyncData::setComparisonOfDocuments(const nlohmann::json& resp)
+void SynchDocumentsBase::setComparisonOfDocuments(const nlohmann::json &resp)
 {
     srv_resp = resp;
 }
 
-void SyncData::run()
-{
-
-    qDebug() << __FUNCTION__;
-
-    nlohmann::json send_srv{};
-    bool result = synchronizeBaseDocuments(send_srv);
-
-    m_running = false;
-    emit endSynchronize(result, send_srv);
-    emit runningChanged(m_running);
-    emit finished();
-
-}
-
-void SyncData::setRunning(bool running)
-{
-    if (m_running == running)
-        return;
-
-    m_running = running;
-    emit runningChanged(running);
-}
-
-void SyncData::setMessage(QString message)
-{
-    if (m_message == message)
-        return;
-
-    m_message = message;
-    emit messageChanged(message);
-}
-
-bool SyncData::synchronizeBaseDocuments(nlohmann::json& sendToSrvDocuments)
+bool SynchDocumentsBase::synchronizeBaseDocuments(nlohmann::json &sendToSrvDocuments)
 {
     qDebug() << __FUNCTION__;
 
     try {
-        auto sqlDatabase = QSqlDatabase::addDatabase("QSQLITE", "SyncCon");
-        sqlDatabase.setDatabaseName(db_path);
 
         using namespace arcirk::database;
 
-        if (!sqlDatabase.open()) {
-            qCritical() << sqlDatabase.lastError().text();
+        if (!sql.open()) {
+            qCritical() << sql.lastError().text();
             return false;
         }
+
+        if(srv_resp.empty())
+            return false;
 
         auto objects = srv_resp.value("objects", nlohmann::json{});
         auto comparison_table = srv_resp.value("comparison_table", nlohmann::json{});
@@ -157,22 +129,46 @@ bool SyncData::synchronizeBaseDocuments(nlohmann::json& sendToSrvDocuments)
         if(m_vec_new_documents.size() > 0){
             foreach (auto const& itr, m_vec_new_documents) {
                 sendToSrvDocuments += builder::query_builder::data_synchronization_get_object(
-                            arcirk::enum_synonym(tables::tbDocuments), itr, sqlDatabase
+                            arcirk::enum_synonym(tables::tbDocuments), itr, sql
                             );
             }
         }
 
-        sqlDatabase.close();
+        sql.close();
         //sqlDatabase.removeDatabase("SyncCon");
-        return true;
 
     } catch (...) {
         return false;
     }
 
+    return true;
 }
 
-void SyncData::setDatabaseFileName(const QString &file)
+SynchInitialDataEntry::SynchInitialDataEntry(Settings *sett)
 {
-    db_path = file;
+    m_settings = sett;
+    open_database();
+}
+
+void SynchInitialDataEntry::synchronize()
+{
+
+}
+
+void SynchronizeBase::open_database()
+{
+    sql = QSqlDatabase::addDatabase("QSQLITE", connectionName());
+#ifndef Q_OS_WINDOWS
+    sql.setDatabaseName("pricechecker.sqlite");
+#else
+    auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir dir(path);
+    if(!dir.exists())
+        dir.mkpath(path);
+
+    auto fileName= path + "/pricechecker.sqlite";
+    sql.setDatabaseName(fileName);
+#endif
+}
+
 }

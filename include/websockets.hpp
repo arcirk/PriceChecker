@@ -57,6 +57,8 @@ public:
 
     Q_INVOKABLE void updateHttpServiceConfiguration();
 
+    Q_INVOKABLE void updateDavServiceConfiguration();
+
     Q_INVOKABLE QString cryptPass(const QString& source, const QString& key);
 
     Q_INVOKABLE void registerDevice();
@@ -66,6 +68,8 @@ public:
     Q_INVOKABLE void get_image_data(BarcodeInfo* bInfo);
 
     Q_INVOKABLE void checkConnection();
+
+    Q_INVOKABLE void firstLoadDatabase();
 
     Q_INVOKABLE void startReconnect(){
         if(!wsSettings)
@@ -112,14 +116,15 @@ private:
     QTimer * m_tmr_synchronize;
 
     QQueue<async_await> m_async_await;
+    QVector<QString> m_vecOperations;
 
     bool is_offline;
 
     QSqlDatabase sqlDatabase;
     QMap<QString, arcirk::server::server_response> sqlResult;
 
-    QThread syncOperatiions;
-    SyncData * syncData;
+    //QThread syncOperatiions;
+    //SyncData * syncData;
 
     void syncDataCreateConnections();
 
@@ -157,7 +162,7 @@ private slots:
     void onError(QAbstractSocket::SocketError error);
     void onReconnect();
     void onSynchronize();
-    void onEndSynchronize(bool isValid, const nlohmann::json& objects);
+//    void onEndSynchronize(bool isValid, const nlohmann::json& objects);
 
 signals:
 //    void typePriceRefChanged();
@@ -171,12 +176,16 @@ signals:
     void connectionChanged(bool state);
 
     void updateHsConfiguration(const QString& hsHost, const QString& hsUser, const QString& hsPwd);
+    void updateDavConfiguration(const QString& davHost, const QString& davUser, const QString& davPwd);
 
     void notify(const QString &message);
 
     void readDocument(const QString& jsonModel);
     void readDocuments(const QString& jsonModel);
     void readDocumentTable(const QString& jsonModel);
+
+    void startAsyncSynchronize(const QString& operationName);
+    void endAsyncSynchronize(const QString& operationName);
 };
 
 #endif // WEBSOCKETS_HPP

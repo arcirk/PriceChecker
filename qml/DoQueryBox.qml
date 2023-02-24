@@ -21,6 +21,7 @@ Popup {
     property int row: 0
     property alias text: lblQuery.text
     property string theme: "Dark"
+    property string command: "empty"
 
     signal accept()
 

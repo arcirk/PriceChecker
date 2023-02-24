@@ -237,6 +237,10 @@ ApplicationWindow {
             optionsDlg.updateHttpServiceConfiguration(hsHost, hsUser, hsPwd);
         }
 
+        onUpdateDavConfiguration: function(davHost, davUser, davPwd){
+            optionsDlg.updateDavServiceConfiguration(davHost, davUser, davPwd);
+        }
+
         onNotify: function(message){
             popupMessage.show(message);
         }
@@ -263,6 +267,16 @@ ApplicationWindow {
 
                 stackView.currentItem.setModelSource(jsonModel);
             }
+        }
+
+        onStartAsyncSynchronize: function(operationnName){
+            if(operationnName === "SynchDocumentsBase")
+                btnSync.enabled = false;
+        }
+
+        onEndAsyncSynchronize: function(operationnName){
+            if(operationnName === "SynchDocumentsBase")
+                btnSync.enabled = true;
         }
     }
 
@@ -429,6 +443,13 @@ ApplicationWindow {
             wsClient.open(wsSettings);
         }
         updateToolbarButton(false);
+    }
+
+    ProgressBar{
+        id: progressBar
+        value: 0.5
+        z:1
+        width: parent.width
     }
 
     StackView{

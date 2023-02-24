@@ -10,6 +10,10 @@
 #include <QDateTime>
 #include <memory>
 
+//#include <include/synch_load_first_data.hpp>
+#include <include/synch_operations.hpp>
+#include <include/synch_data.hpp>
+
 #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 void* _crypt(void* data, unsigned data_size, void* key, unsigned key_size)
 {
@@ -59,8 +63,8 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
     m_tmr_synchronize = new QTimer(this);
     connect(m_tmr_synchronize,SIGNAL(timeout()),this,SLOT(onSynchronize()));
 
-    syncData = new SyncData(this);
-    syncDataCreateConnections();
+//    syncData = new SyncData(this);
+//    syncDataCreateConnections();
 
     sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
 #ifndef Q_OS_WINDOWS
@@ -74,7 +78,7 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
 
     auto fileName= path + "/pricechecker.sqlite";
     sqlDatabase.setDatabaseName(fileName);
-    syncData->setDatabaseFileName(fileName);
+//    syncData->setDatabaseFileName(fileName);
 #endif
 
     if (!sqlDatabase.open()) {
@@ -104,8 +108,8 @@ WebSocketClient::WebSocketClient(QObject *parent)
     m_tmr_synchronize = new QTimer(this);
     connect(m_tmr_synchronize,SIGNAL(timeout()),this,SLOT(onSynchronize()));
 
-    syncData = new SyncData(this);
-    syncDataCreateConnections();
+//    syncData = new SyncData(this);
+//    syncDataCreateConnections();
 
     sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
 #ifndef Q_OS_WINDOWS
@@ -135,7 +139,7 @@ WebSocketClient::~WebSocketClient()
         m_client->close();
     m_tmr_synchronize->stop();
     m_reconnect->stop();
-    syncOperatiions.exit();
+    //syncOperatiions.exit();
 }
 
 bool WebSocketClient::isStarted()
@@ -248,8 +252,8 @@ void WebSocketClient::onSynchronize()
     qDebug() << __FUNCTION__;
     if(!isStarted())
         return;
-    if(syncData->running())
-        return;
+//    if(syncData->running())
+//        return;
 
     if(m_async_await.size() > 0){
         m_async_await.append(std::bind(&WebSocketClient::synchronizeBase, this));
@@ -258,21 +262,21 @@ void WebSocketClient::onSynchronize()
 
 }
 
-void WebSocketClient::onEndSynchronize(bool isValid, const nlohmann::json &objects)
-{
-    qDebug() << __FUNCTION__ << isValid;
-    if(!isValid)
-        return;
+//void WebSocketClient::onEndSynchronize(bool isValid, const nlohmann::json &objects)
+//{
+//    qDebug() << __FUNCTION__ << isValid;
+//    if(!isValid)
+//        return;
 
-    if(!isStarted())
-        return;
+//    if(!isStarted())
+//        return;
 
-    send_command(arcirk::server::server_commands::SyncUpdateDataOnTheServer, {
-                     {"device_id", wsSettings->deviceId().toStdString()},
-                     {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
-                     {"base64_param", QByteArray::fromStdString(objects.dump()).toBase64().toStdString()},
-                 });
-}
+//    send_command(arcirk::server::server_commands::SyncUpdateDataOnTheServer, {
+//                     {"device_id", wsSettings->deviceId().toStdString()},
+//                     {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+//                     {"base64_param", QByteArray::fromStdString(objects.dump()).toBase64().toStdString()},
+//                 });
+//}
 
 QString WebSocketClient::generateHash(const QString &usr, const QString &pwd)
 {
@@ -300,6 +304,7 @@ void WebSocketClient::parse_response(const QString &resp)
                 emit connectionChanged(true);
                 //поочередное выполнение
                 m_async_await.append(std::bind(&WebSocketClient::updateHttpServiceConfiguration, this));
+                m_async_await.append(std::bind(&WebSocketClient::updateDavServiceConfiguration, this));
                 m_async_await.append(std::bind(&WebSocketClient::get_workplace_options, this));
                 //m_async_await.append(std::bind(&WebSocketClient::synchronizeBase, this));
                 asyncAwait();
@@ -309,6 +314,9 @@ void WebSocketClient::parse_response(const QString &resp)
         }else if(msg.command == arcirk::enum_synonym(arcirk::server::server_commands::HttpServiceConfiguration)){
             if(msg.result != "error")
                 update_server_configuration("httpService", msg.result);
+        }else if(msg.command == arcirk::enum_synonym(arcirk::server::server_commands::WebDavServiceConfiguration)){
+            if(msg.result != "error")
+                update_server_configuration("davService", msg.result);
         }else if(msg.command == arcirk::enum_synonym(arcirk::server::server_commands::ExecuteSqlQuery)){
             if(msg.result != "error")
                 parse_exec_query_result(msg);
@@ -380,12 +388,20 @@ void WebSocketClient::update_server_configuration(const QString &typeConf, const
         if(resp.is_discarded())
             return;
 
-        QString hsService = QString::fromStdString(resp.value("HSHost", ""));
-        QString hsUser = QString::fromStdString(resp.value("HSUser", ""));
-        QString hsPwd = QString::fromStdString(resp.value("HSPassword", ""));
+        if(typeConf == "httpService"){
+            QString hsService = QString::fromStdString(resp.value("HSHost", ""));
+            QString hsUser = QString::fromStdString(resp.value("HSUser", ""));
+            QString hsPwd = QString::fromStdString(resp.value("HSPassword", ""));
 
-        emit updateHsConfiguration(hsService, hsUser, hsPwd);
+            emit updateHsConfiguration(hsService, hsUser, hsPwd);
 
+        }else if(typeConf == "davService"){
+            QString davService = QString::fromStdString(resp.value("WebDavHost", ""));
+            QString davUser = QString::fromStdString(resp.value("WebDavUser", ""));
+            QString davPwd = QString::fromStdString(resp.value("WebDavPwd", ""));
+
+            emit updateDavConfiguration(davService, davUser, davPwd);
+        }
         asyncAwait();
 
     } catch (const std::exception& e) {
@@ -528,6 +544,12 @@ void WebSocketClient::synchronizeBase()
 {
     qDebug() << __FUNCTION__;
 
+    auto i = m_vecOperations.indexOf("SynchDocumentsBase");
+    if(i != -1){ //уже запущен
+        asyncAwait();
+        return;
+    }
+
     if(!isStarted()){
         asyncAwait();
         return;
@@ -585,10 +607,43 @@ void WebSocketClient::synchronizeBaseNext(const arcirk::server::server_response 
 
     auto result = nlohmann::json::parse(QByteArray::fromBase64(resp.result.data()).toStdString());
 
-    if(!syncData->running()){
-        syncData->setComparisonOfDocuments(result);
-        syncOperatiions.start();
-    }
+    using namespace arcirk::synchronize;
+    auto syncClass = new SynchDocumentsBase(wsSettings, this);
+    syncClass->setComparisonOfDocuments(result);
+    auto runClass = new SynhOperations<SynchDocumentsBase>(syncClass);
+
+    connect(syncClass, &SynchronizeBase::startSynchronize, this, [&](const QString& operationName){
+        qDebug() << "SynchDocumentsBase" << "startSynchronize";
+        emit startAsyncSynchronize(operationName);
+        m_vecOperations.append(operationName);
+    });
+
+    connect(syncClass, &SynchronizeBase::endSynchronize, this, [&](const QString& operationName, bool result, const nlohmann::json& details){
+        qDebug() << "SynchDocumentsBase" << "endSynchronize";
+        if(!result)
+            return;
+
+        if(!isStarted())
+            return;
+
+        send_command(arcirk::server::server_commands::SyncUpdateDataOnTheServer, {
+                         {"device_id", wsSettings->deviceId().toStdString()},
+                         {"table_name", arcirk::enum_synonym(arcirk::database::tables::tbDocuments)},
+                         {"base64_param", QByteArray::fromStdString(details.dump()).toBase64().toStdString()},
+                     });
+        emit endAsyncSynchronize(operationName);
+        auto i = m_vecOperations.indexOf(operationName);
+        if(i != -1)
+            m_vecOperations.remove(i);
+
+    });
+
+    QThreadPool::globalInstance()->start(runClass);
+
+//    if(!syncData->running()){
+//        syncData->setComparisonOfDocuments(result);
+//        syncOperatiions.start();
+//    }
 }
 
 QString WebSocketClient::get_hash(const QString& first, const QString& second){
@@ -602,6 +657,14 @@ void WebSocketClient::updateHttpServiceConfiguration()
     qDebug() << __FUNCTION__;
     if(isStarted()){
         send_command(arcirk::server::server_commands::HttpServiceConfiguration);
+    }
+}
+
+void WebSocketClient::updateDavServiceConfiguration()
+{
+    qDebug() << __FUNCTION__;
+    if(isStarted()){
+        send_command(arcirk::server::server_commands::WebDavServiceConfiguration);
     }
 }
 
@@ -834,6 +897,26 @@ void WebSocketClient::checkConnection()
 {
     if(!m_reconnect->isActive())
         startReconnect();
+}
+
+void WebSocketClient::firstLoadDatabase()
+{
+//    using namespace arcirk::synchronize;
+
+//    auto syncClass = new SynchInitialDataEntry(wsSettings);
+//    auto runClass = new SynhOperations<SynchInitialDataEntry>(syncClass);
+
+//    connect(syncClass, &SynchronizeBase::startSynchronize, this, [&](const QString& operationName){
+
+//    });
+
+//    connect(syncClass, &SynchronizeBase::endSynchronize, this, [&](const QString& operationName, bool result, const nlohmann::json& send_srv){
+
+//    });
+
+//    QThreadPool::globalInstance()->start(runClass);
+
+
 }
 
 void WebSocketClient::deleteDocument(const QString &ref, const int ver)
@@ -1243,8 +1326,8 @@ void WebSocketClient::debugViewTime()
 
 void WebSocketClient::syncDataCreateConnections()
 {
-    connect(&syncOperatiions, &QThread::started, syncData, &SyncData::run);
-    connect(syncData, &SyncData::finished, &syncOperatiions, &QThread::terminate);
-    connect(syncData, &SyncData::endSynchronize, this, &WebSocketClient::onEndSynchronize);
-    syncData->moveToThread(&syncOperatiions);
+//    connect(&syncOperatiions, &QThread::started, syncData, &SyncData::run);
+//    connect(syncData, &SyncData::finished, &syncOperatiions, &QThread::terminate);
+//    connect(syncData, &SyncData::endSynchronize, this, &WebSocketClient::onEndSynchronize);
+//    syncData->moveToThread(&syncOperatiions);
 }

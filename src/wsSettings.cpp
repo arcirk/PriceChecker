@@ -329,6 +329,11 @@ namespace arcirk{
         return m_workplace;
     }
 
+    QString Settings::getDavService() const
+    {
+        return davService();
+    }
+
     QString Settings::getHttpService() const
     {
         return httpService();
@@ -355,6 +360,11 @@ namespace arcirk{
         return showImage();
     }
 
+    QString Settings::davService() const
+    {
+        return QString::fromStdString(conf.WebDavHost);
+    }
+
     QString Settings::deviceId() const
     {
         return m_device_id.toString(QUuid::WithoutBraces);
@@ -363,6 +373,11 @@ namespace arcirk{
     void Settings::setDeviceId(const QString &device_id)
     {
         m_device_id = QUuid(device_id);
+    }
+
+    void Settings::setDavService(const QString &value)
+    {
+        conf.WebDavHost = value.toStdString();
     }
 
     void Settings::setHttpService(const QString &value)

@@ -30,6 +30,7 @@ namespace arcirk{
         Q_PROPERTY(QString deviceId READ deviceId WRITE setDeviceId NOTIFY deviceIdChanged)
         Q_PROPERTY(QString product READ product WRITE setProduct NOTIFY productChanged)
         Q_PROPERTY(QString httpService READ httpService WRITE setHttpService NOTIFY httpServiceChanged)
+        Q_PROPERTY(QString davService READ davService WRITE setDavService NOTIFY davServiceChanged)
         Q_PROPERTY(QString httpPwd READ httpPwd WRITE setHttpPwd NOTIFY httpPwdChanged)
         Q_PROPERTY(QString httpUser READ httpPwd WRITE setHttpUser NOTIFY httpUserChanged)
         Q_PROPERTY(bool showImage READ showImage WRITE setShowImage NOTIFY showImageChanged)
@@ -52,6 +53,7 @@ namespace arcirk{
 
         Q_INVOKABLE void setDeviceId(const QString& device_id);
 
+        Q_INVOKABLE void setDavService(const QString& value);
         Q_INVOKABLE void setHttpService(const QString& value);
         Q_INVOKABLE void setHttpPwd(const QString& value);
         Q_INVOKABLE void setHttpUser(const QString& value);
@@ -74,6 +76,7 @@ namespace arcirk{
 
         arcirk::database::devices& workplace_options();
 
+        QString getDavService() const;
         QString getHttpService() const;
         QString getHttpPassword()  const;
         QString getHttpUser();
@@ -88,6 +91,7 @@ namespace arcirk{
         QUuid m_device_id;
         QString m_product;
         QString m_httpService;
+        QString m_davService;
         QString m_httpPwd;
         bool m_showImage;
         bool m_keyboardInputMode;
@@ -98,6 +102,7 @@ namespace arcirk{
         arcirk::database::devices m_workplace;
         arcirk::database::devices_view m_workplace_view;
 
+        QString davService() const;
         QString httpService() const;
         QString httpPwd() const;
         QString httpUser() const;
@@ -125,6 +130,7 @@ namespace arcirk{
         void deviceIdChanged();
         void productChanged();
         void httpServiceChanged();
+        void davServiceChanged();
         void httpPwdChanged();
         void showImageChanged();
         void keyboardInputModeChanged();

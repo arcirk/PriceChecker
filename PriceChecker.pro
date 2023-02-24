@@ -17,6 +17,9 @@ SOURCES += \
     src/qjsontablemodel.cpp \
     src/qproxymodel.cpp \
     src/qtandroidservice.cpp \
+    src/synch_base_documents.cpp \
+    src/synch_data.cpp \
+    src/synh_load_first_data.cpp \
     src/websockets.cpp \
         src/wsSettings.cpp
 
@@ -49,6 +52,10 @@ HEADERS += \
     include/qtandroidservice.h \
     include/query_builder.hpp \
     include/shared_struct.hpp \
+    include/synch_base_documents.hpp \
+    include/synch_data.hpp \
+    include/synch_load_first_data.hpp \
+    include/synch_operations.hpp \
     include/verify_database.hpp \
     include/websockets.hpp \
     include/wsSettings.hpp

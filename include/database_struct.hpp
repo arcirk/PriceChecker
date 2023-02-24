@@ -88,7 +88,8 @@ BOOST_FUSION_DEFINE_STRUCT(
         (double, price)
         (double, quantity)
         (std::string, barcode)
-        (std::string, parent)
+        (std::string, parent) //ссылка на документ
+        (std::string, product) //номенклатура
         (int, version)
 );
 
@@ -100,6 +101,17 @@ BOOST_FUSION_DEFINE_STRUCT(
         (std::string, ref)
         (std::string, cache) // Все остальные реквизиты
         (std::string, parent)
+        (std::string, image) // картинка
+        (int, version)
+);
+
+BOOST_FUSION_DEFINE_STRUCT(
+        (arcirk::database), barcodes,
+        (int, _id)
+        (std::string, first) // Штрихкод
+        (std::string, second) //
+        (std::string, ref)
+        (std::string, parent) // Идентификатор номенклатуры
         (int, version)
 );
 
@@ -259,6 +271,7 @@ namespace arcirk::database{
                                           "    quantity        DOUBLE DEFAULT (0),\n"
                                           "    barcode         TEXT      DEFAULT \"\",\n"
                                           "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
+                                          "    product         TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
                                           "    version         INTEGER NOT NULL DEFAULT(0)\n"
                                           ");";
 
@@ -270,6 +283,7 @@ namespace arcirk::database{
                                                  "                             NOT NULL,\n"
                                                  "    cache           TEXT      DEFAULT \"\",\n"
                                                  "    parent          TEXT (36) DEFAULT [00000000-0000-0000-0000-000000000000],\n"
+                                                 "    image           TEXT,\n"
                                                  "    version         INTEGER NOT NULL DEFAULT(0)\n"
                                                  ");";
 
