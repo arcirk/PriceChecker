@@ -11,8 +11,7 @@
 #include <memory>
 
 //#include <include/synch_load_first_data.hpp>
-#include <include/synch_operations.hpp>
-#include <include/synch_data.hpp>
+
 
 #define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 void* _crypt(void* data, unsigned data_size, void* key, unsigned key_size)
@@ -69,7 +68,7 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
     sqlDatabase = QSqlDatabase::addDatabase("QSQLITE");
 #ifndef Q_OS_WINDOWS
     sqlDatabase.setDatabaseName("pricechecker.sqlite");
-    syncData->setDatabaseFileName("pricechecker.sqlite");
+    //syncData->setDatabaseFileName("pricechecker.sqlite");
 #else
     auto path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir dir(path);
@@ -86,6 +85,8 @@ WebSocketClient::WebSocketClient(const QUrl &url, QObject *parent)
     }
 
     is_offline = true;
+
+    synchObjects.synchDoc = new arcirk::synchronize::SynchDocumentsBase(wsSettings, this);
 
     startSynchronize();
 }
@@ -129,6 +130,8 @@ WebSocketClient::WebSocketClient(QObject *parent)
     }
 
     is_offline = true;
+
+    synchObjects.synchDoc = new arcirk::synchronize::SynchDocumentsBase(wsSettings, this);
 
     startSynchronize();
 }
@@ -608,7 +611,8 @@ void WebSocketClient::synchronizeBaseNext(const arcirk::server::server_response 
     auto result = nlohmann::json::parse(QByteArray::fromBase64(resp.result.data()).toStdString());
 
     using namespace arcirk::synchronize;
-    auto syncClass = new SynchDocumentsBase(wsSettings, this);
+    //auto syncClass = new SynchDocumentsBase(wsSettings, this);
+    auto syncClass = synchObjects.synchDoc;
     syncClass->setComparisonOfDocuments(result);
     auto runClass = new SynhOperations<SynchDocumentsBase>(syncClass);
 

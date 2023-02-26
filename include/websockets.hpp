@@ -12,9 +12,20 @@
 #include "qjsontablemodel.h"
 #include <QtSql>
 #include <QThread>
-#include "SyncData.h"
+//#include "SyncData.h"
 
 typedef std::function<void()> async_await;
+
+#include <include/synch_operations.hpp>
+#include <include/synch_data.hpp>
+
+struct SynchObjects
+{
+    arcirk::synchronize::SynchDocumentsBase * synchDoc;
+    arcirk::synchronize::SynchInitialDataEntry * synchDataEntry;
+
+    SynchObjects() {}
+};
 
 class WebSocketClient : public QObject
 {
@@ -104,7 +115,7 @@ public:
 private:
     QWebSocket* m_client;
     arcirk::Settings * wsSettings;
-    //arcirk::client::checker_conf  chk_conf;
+    SynchObjects synchObjects;
 
     QUuid m_currentSession;
     QUuid m_currentUserUuid;

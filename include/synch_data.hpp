@@ -1,6 +1,7 @@
 #ifndef SYNCH_DATA_HPP
 #define SYNCH_DATA_HPP
 
+#include <QFloat16>
 #include <QObject>
 #include "wsSettings.hpp"
 #include <QSqlDatabase>
